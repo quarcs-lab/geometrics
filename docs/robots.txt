@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Machine-readable maps of this library for LLMs and AI agents:
+# https://quarcs-lab.github.io/geometrics/llms.txt
+# https://quarcs-lab.github.io/geometrics/llms-full.txt
+
+Sitemap: https://quarcs-lab.github.io/geometrics/sitemap.xml

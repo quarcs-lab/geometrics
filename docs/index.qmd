@@ -1,0 +1,59 @@
+---
+title: "geometrics"
+subtitle: "Regional growth, convergence, and inequality analysis on the PySAL stack"
+toc: false
+---
+
+**geometrics** turns the standard analyses of the regional convergence literature into
+illustrative, easy-to-apply functions with interactive Plotly figures, Great Tables,
+and plain-language interpretation — built on the excellent
+[PySAL](https://pysal.org) family (libpysal, esda, giddy, inequality, mapclassify,
+spreg) and [mgwr](https://mgwr.readthedocs.io/).
+
+## Three inputs
+
+| Input | What it is |
+|---|---|
+| `gdf` | Geometry with **only the entity ID** — shapefile, zipped shapefile, GeoJSON, or GeoPackage |
+| `df` | A **long-form panel** — one row per (entity, time) |
+| `df_dict` | A **data dictionary** — `var_name, var_def, label, type, role, can_be_na` |
+
+```python
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()          # the bundled Indian case study
+df = gm.set_labels(df, df_dict, set_panel=True)  # declare everything once
+
+w = gm.make_weights(gdf, method="knn", k=6)
+gm.explore_lisa_cluster_map(df, "ntl_total", gdf=gdf, w=w, period=2010).fig
+
+res = gm.analyze_beta_convergence(df, "ntl_total", model="sdm", gdf=gdf, w=w)
+print(res.interpret())
+```
+
+## The modules
+
+- **Maps & ESDA** — classified/animated choropleths, weights connectivity, Moran
+  scatterplots, LISA cluster maps, Moran's I over time
+- **Convergence** — β-convergence (OLS and spatial SAR/SEM/SLX/SDM with impact
+  decomposition), σ-convergence, Phillips-Sul convergence clubs with club maps
+- **Spatial econometrics** — the spreg suite with LM diagnostics and
+  alternative-weights robustness
+- **Distribution dynamics** — Markov and spatial Markov transition analysis
+- **Inequality** — Gini/Theil trends, spatial Gini, Theil between/within decomposition
+- **Local models** — GWR and multiscale GWR with mapped local coefficients
+
+Every function returns a typed result object: `.df` (tidy frame), `.fig` (Plotly),
+`.gt` (Great Tables), `.interpret()` (plain-language reading), `.explain()` (concept
+explainer).
+
+## Install
+
+```bash
+pip install geometrics                 # core
+pip install "geometrics[dynamics]"     # + Markov / spatial Markov (giddy)
+pip install "geometrics[all]"          # everything, incl. PNG export
+```
+
+Start with the [Quickstart](quickstart.qmd) or the
+[India case study](articles/india-case-study.qmd).

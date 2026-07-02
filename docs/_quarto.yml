@@ -1,0 +1,154 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - robots.txt
+
+website:
+  title: "geometrics"
+  description: "Regional growth, convergence, and inequality analysis on the PySAL stack."
+  repo-url: https://github.com/quarcs-lab/geometrics
+  repo-actions: [issue, edit]
+  navbar:
+    background: primary
+    left:
+      - text: "Home"
+        file: index.qmd
+      - text: "Quickstart"
+        file: quickstart.qmd
+      - text: "Articles"
+        menu:
+          - text: "The data model (gdf, df, df_dict)"
+            file: articles/data-model.qmd
+          - text: "Beta and sigma convergence"
+            file: articles/convergence.qmd
+          - text: "Spatial dependence and LISA"
+            file: articles/spatial-dependence.qmd
+          - text: "Spatial spillovers (SDM)"
+            file: articles/spillovers.qmd
+          - text: "Regional inequality"
+            file: articles/inequality.qmd
+          - text: "Distribution dynamics"
+            file: articles/dynamics.qmd
+          - text: "The India case study"
+            file: articles/india-case-study.qmd
+      - text: "Reference"
+        file: reference/index.qmd
+      - text: "Changelog"
+        file: changelog.qmd
+    right:
+      - icon: github
+        href: https://github.com/quarcs-lab/geometrics
+  sidebar:
+    style: docked
+    contents:
+      - reference/_sidebar.yml
+
+execute:
+  freeze: auto
+
+format:
+  html:
+    theme: [cosmo, custom.scss]
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    include-in-header:
+      text: |
+        <link rel="alternate" type="text/markdown" href="/geometrics/llms.txt" title="llms.txt for LLMs">
+        <link rel="alternate" type="text/plain" href="/geometrics/llms-full.txt" title="llms-full.txt for LLMs">
+
+metadata-files:
+  - reference/_sidebar.yml
+
+quartodoc:
+  package: geometrics
+  parser: numpy
+  title: API Reference
+  sidebar: reference/_sidebar.yml
+  dir: reference
+  render_interlinks: true
+  sections:
+    - title: Maps & exploratory spatial analysis
+      desc: >-
+        Interactive Plotly maps and ESDA — classified and animated choropleths, the
+        weights connectivity graph, Moran scatterplots, LISA cluster maps, Moran's I
+        over time, and space-time descriptives of the regional distribution.
+      contents:
+        - explore_choropleth_map
+        - explore_connectivity_map
+        - explore_moran_plot
+        - explore_lisa_cluster_map
+        - explore_moran_over_time
+        - explore_distribution_over_time
+        - explore_spacetime_heatmap
+    - title: Convergence
+      desc: >-
+        β-convergence with OLS or spatial estimators (SAR / SEM / SLX / SDM) and the
+        LeSage-Pace impact decomposition, σ-convergence (dispersion trends), and
+        Phillips-Sul convergence clubs with club maps.
+      contents:
+        - analyze_beta_convergence
+        - analyze_sigma_convergence
+        - analyze_convergence_clubs
+        - growth_cross_section
+    - title: Spatial econometric models
+      desc: >-
+        The spreg suite — OLS / spatial lag / spatial error / SLX / spatial Durbin
+        estimation with direct, indirect and total impacts; Lagrange-multiplier
+        specification diagnostics with a model recommendation; and robustness of the
+        impacts to the choice of spatial weights.
+      contents:
+        - analyze_spatial_model
+        - analyze_spatial_diagnostics
+        - analyze_spatial_model_by_weights
+    - title: Distribution dynamics
+      desc: >-
+        Markov transition analysis of the regional distribution and Rey's spatially
+        conditioned Markov chains (requires the `dynamics` extra).
+      contents:
+        - analyze_markov_transitions
+        - analyze_spatial_markov
+    - title: Regional inequality
+      desc: >-
+        Gini / Theil / CV trends over time (with the spatial Gini decomposition), and
+        the Theil between/within decomposition across regional groupings.
+      contents:
+        - analyze_inequality_over_time
+        - analyze_theil_decomposition
+    - title: Local models
+      desc: >-
+        Geographically weighted regression and multiscale GWR with mapped local
+        coefficients and multiple-testing-corrected significance masking.
+      contents:
+        - analyze_gwr
+        - analyze_mgwr
+    - title: Utilities
+      desc: >-
+        Cross-cutting helpers — geometry loading, spatial-weights construction, panel
+        declaration, data-dictionary inference, theming, and the concept-explainer
+        registry.
+      contents:
+        - read_gdf
+        - make_weights
+        - set_panel
+        - resolve_panel
+        - set_labels
+        - resolve_label
+        - set_roles
+        - build_data_dict
+        - set_palette
+        - get_palette
+        - explain
+        - list_topics
+    - title: Datasets
+      desc: >-
+        The bundled Indian case study — 520 districts observed by satellite nighttime
+        lights (1996-2010) and a 32-state demo, fetched from the source paper's
+        repository and cached locally.
+      package: geometrics.data
+      contents:
+        - load_india
+        - load_india_states
+        - load_india_raw
+        - clear_cache

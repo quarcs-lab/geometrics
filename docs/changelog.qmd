@@ -1,0 +1,32 @@
+---
+title: "Changelog"
+---
+
+## v0.1.0 (2026-07-02)
+
+First public release.
+
+- **The three-input data contract**: `read_gdf` (shapefile / zipped shapefile /
+  GeoJSON / GeoPackage → ID-only geometry), a long-form panel declared with
+  `set_panel` / `set_labels`, and a six-column data dictionary (`df_dict`,
+  inferable with `build_data_dict`).
+- **Maps & ESDA**: `explore_choropleth_map` (classified, animated),
+  `explore_connectivity_map`, `explore_moran_plot`, `explore_lisa_cluster_map`,
+  `explore_moran_over_time`, `explore_distribution_over_time`,
+  `explore_spacetime_heatmap`.
+- **Convergence**: `analyze_beta_convergence` (OLS / SAR / SEM / SLX / SDM with
+  LeSage-Pace impacts and Monte-Carlo standard errors), `analyze_sigma_convergence`,
+  `analyze_convergence_clubs` (Phillips-Sul log(t) with club maps).
+- **Spatial econometrics**: `analyze_spatial_model`, `analyze_spatial_diagnostics`
+  (Anselin-Florax recommendation), `analyze_spatial_model_by_weights`.
+- **Distribution dynamics**: `analyze_markov_transitions`, `analyze_spatial_markov`
+  (via the `dynamics` extra).
+- **Inequality**: `analyze_inequality_over_time` (Gini / Theil / CV, spatial Gini),
+  `analyze_theil_decomposition`.
+- **Local models**: `analyze_gwr`, `analyze_mgwr`.
+- **Pedagogy**: every result carries `.interpret()` and `.explain()`; 30 concept
+  explainers registered.
+- **Data**: the Indian district case study (520 districts, DMSP-OLS nighttime
+  lights 1996-2010) and a 32-state demo, fetched from
+  [quarcs-lab/project2025s-py](https://github.com/quarcs-lab/project2025s-py) at a
+  pinned commit with hash verification.
