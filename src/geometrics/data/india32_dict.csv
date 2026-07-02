@@ -1,0 +1,7 @@
+var_name,var_def,label,type,role,can_be_na
+region,"Name of the Indian state or union territory (32 regions); source column region in ntl/india32_ntl_percapita_1992.csv (quarcs-lab/project2025s-py).",Region,entity,,False
+year,"Observation year; single cross-section for 1992.",Year,time,,False
+ntl_sum,"Sum of corrected DMSP-OLS (CCNL v1) nighttime luminosity over the region in 1992, computed in Google Earth Engine at the sensor's native scale; source column sum_ntl in ntl/india32_ntl_percapita_1992.csv (quarcs-lab/project2025s-py).",Total NTL,numeric,,False
+pop,"Total population of the region in 1992 from the GlobPOP gridded population dataset, aggregated in Google Earth Engine; source column sum_pop in ntl/india32_ntl_percapita_1992.csv (quarcs-lab/project2025s-py).",Population,numeric,,False
+ntl_pc,"Nighttime luminosity per million inhabitants in 1992 (ntl_sum divided by population in millions); source column ntl_pc in ntl/india32_ntl_percapita_1992.csv (quarcs-lab/project2025s-py).",NTL per capita,numeric,,False
+log_ntl_pc,"Natural log of nighttime luminosity per capita in 1992; source column ln_ntl_pc in ntl/india32_ntl_percapita_1992.csv (quarcs-lab/project2025s-py).",Log NTL per capita,numeric,outcome,False

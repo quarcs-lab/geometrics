@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use geometrics, please cite it as below."
+title: "geometrics: regional growth, convergence, and inequality analysis on the PySAL stack"
+type: software
+authors:
+  - family-names: Mendez
+    given-names: Carlos
+    affiliation: "Nagoya University / QuaRCS Lab"
+repository-code: "https://github.com/quarcs-lab/geometrics"
+url: "https://quarcs-lab.github.io/geometrics/"
+license: MIT
+version: 0.1.0
+date-released: 2026-07-02
+keywords:
+  - spatial econometrics
+  - regional science
+  - convergence
+  - inequality
+  - PySAL
+references:
+  - type: article
+    title: "Regional growth, convergence, and spatial spillovers in India: A reproducible view from outer space"
+    authors:
+      - family-names: Mendez
+        given-names: Carlos
+      - family-names: Kabiraj
+        given-names: Sujana
+      - family-names: Li
+        given-names: Jiaqi
+    url: "https://quarcs-lab.github.io/project2025s-py/"

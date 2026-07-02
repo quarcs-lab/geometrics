@@ -1,0 +1,29 @@
+var_name,var_def,label,type,role,can_be_na
+statedist,"Unique district identifier formed by concatenating state and district names; source column statedist in india520.dta (quarcs-lab/project2025s-py).",State-district ID,entity,,False
+state,"Name of the Indian state or union territory the district belongs to (28 categories); source column state in india520.dta (quarcs-lab/project2025s-py).",State,factor,,False
+district,"Name of the district under 1991-census boundaries; source column district in india520.dta (quarcs-lab/project2025s-py).",District,factor,entity_name,False
+year,"Observation year of the radiance-calibrated DMSP-OLS nighttime-lights panel: 1996, 1999, 2000, 2004, 2005, or 2010.",Year,time,,False
+ntl_rural,"Radiance-calibrated DMSP-OLS total nighttime luminosity, rural areas; source column r{year}_1996_rcr_snd in india520.dta (quarcs-lab/project2025s-py).",Rural NTL,numeric,,False
+ntl_urban,"Radiance-calibrated DMSP-OLS total nighttime luminosity, urban areas; source column u{year}_1996_rcr_snd in india520.dta (quarcs-lab/project2025s-py).",Urban NTL,numeric,,False
+ntl_total,"Radiance-calibrated DMSP-OLS total nighttime luminosity, all areas; source column t{year}_1996_rcr_snd in india520.dta (quarcs-lab/project2025s-py).",Total NTL,numeric,,False
+ntl_pc_1996,"Radiance-calibrated nighttime luminosity per capita in 1996; source column light96_rcr_cap in india520.dta (quarcs-lab/project2025s-py); carried verbatim for paper replication.",NTL per capita (1996),numeric,,False
+log_ntl_pc_1996,"Natural log of nighttime luminosity per capita in 1996, the initial-condition regressor of the paper's convergence model; source column log_light96_rcr_cap in india520.dta (quarcs-lab/project2025s-py); carried verbatim for paper replication.",Log NTL per capita (1996),numeric,covariate,False
+growth_ntl_pc_9610,"Annualized growth rate of nighttime luminosity per capita between 1996 and 2010, the dependent variable of the paper's convergence model; source column light_growth96_10rcr_cap in india520.dta (quarcs-lab/project2025s-py); carried verbatim for paper replication.",NTL per capita growth (1996-2010),numeric,outcome,False
+pop_1996,"District population in 1996; source column pop_96 in india520.dta (quarcs-lab/project2025s-py).",Population (1996),numeric,,False
+pop_2001,"District population in the 2001 census; source column pop01 in india520.dta (quarcs-lab/project2025s-py).",Population (2001),numeric,,False
+agri_suitability,"Agricultural suitability index (district mean); source column suit_mean_snd in india520.dta (quarcs-lab/project2025s-py).",Agricultural suitability,numeric,covariate,False
+rainfall,"Mean rainfall over the district; source column rain_mean_snd in india520.dta (quarcs-lab/project2025s-py).",Rainfall,numeric,covariate,False
+malaria,"Malaria index (district mean); source column mala_mean_snd in india520.dta (quarcs-lab/project2025s-py).",Malaria index,numeric,covariate,False
+temperature,"Mean temperature over the district; source column temp_mean_snd in india520.dta (quarcs-lab/project2025s-py).",Temperature,numeric,covariate,False
+ruggedness,"Terrain ruggedness of the district, in 100 m units; source column rug_mean_snd in india520.dta (quarcs-lab/project2025s-py).",Ruggedness,numeric,covariate,False
+dist_coast,"Distance from the district to the coast; source column distance in india520.dta (quarcs-lab/project2025s-py).",Distance to coast,numeric,covariate,False
+latitude,"Latitude of the district; source column latitude in india520.dta (quarcs-lab/project2025s-py).",Latitude,numeric,covariate,False
+rural_share,"Rural population share, 1996; source column rur_percent96_rcr in india520.dta (quarcs-lab/project2025s-py).",Rural population share,numeric,covariate,False
+log_pop_density,"Natural log of population density (persons per sq. km); source column log_tot_density_rcr in india520.dta (quarcs-lab/project2025s-py).",Log population density,numeric,covariate,False
+sc_share,"Scheduled Castes population share, 1996; source column sc_percent96 in india520.dta (quarcs-lab/project2025s-py).",SC population share,numeric,covariate,False
+st_share,"Scheduled Tribes population share, 1996; source column st_percent96 in india520.dta (quarcs-lab/project2025s-py).",ST population share,numeric,covariate,False
+work_share,"Working population share, 1996; source column workp_percent96 in india520.dta (quarcs-lab/project2025s-py).",Working population share,numeric,covariate,False
+literacy_share,"Literate population share, 1996; source column lit_percent96 in india520.dta (quarcs-lab/project2025s-py).",Literacy share,numeric,covariate,False
+higher_edu_share,"Population share with higher education, 1996; source column higheredu_percent96 in india520.dta (quarcs-lab/project2025s-py).",Higher education share,numeric,covariate,False
+electricity_share,"Share of households with an electricity connection, 1996; source column elechh_percent96 in india520.dta (quarcs-lab/project2025s-py).",Electricity share,numeric,covariate,False
+log_paved_roads,"Natural log of households with access to paved (pucca) roads; source column log_puccaroads in india520.dta (quarcs-lab/project2025s-py).",Log paved roads,numeric,covariate,False
