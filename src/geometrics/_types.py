@@ -57,6 +57,8 @@ __all__ = [
     "TheilDecompositionResult",
     "GWRResult",
     "MGWRResult",
+    # ===== LEARN =====
+    "SandboxResult",
 ]
 
 
@@ -936,4 +938,46 @@ class MGWRResult(Interpretable):
 
     def tidy(self) -> pd.DataFrame:
         """Return the per-entity local-coefficient frame."""
+        return self.df
+
+
+# ---------------------------------------------------------------------------
+# LEARN results
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SandboxResult(Interpretable):
+    """Result of a ``geometrics.learn_*`` teaching sandbox.
+
+    The ``learn_*`` functions simulate data from a known data-generating process so a
+    learner can watch an estimator recover a planted parameter. ``df`` is the
+    estimated-vs-truth comparison table, ``fig`` the headline figure, ``summary`` the
+    scalar facts the demonstration turns on (planted values, estimates, errors), and
+    ``topic`` the concept-explainer key the sandbox illustrates. ``data`` is the raw
+    simulated frame the demonstration was built from, ready to re-analyse with the
+    regular ``explore_*`` / ``analyze_*`` functions. ``w_spec`` describes the lattice
+    weights for the spatial sandboxes (``None`` for the aspatial ones).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    summary: dict[str, float]
+    topic: str
+    data: pd.DataFrame
+    w_spec: str | None = None
+    notes: tuple[str, ...] = ()
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language takeaway of the demonstration."""
+        from geometrics.pedagogy._interpret import interpret_sandbox
+
+        return interpret_sandbox(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for the demonstrated topic."""
+        return _explain(self.topic, lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the estimated-vs-truth comparison table."""
         return self.df

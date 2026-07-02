@@ -114,9 +114,7 @@ def _fit(img: Image.Image, box_w: int, box_h: int) -> Image.Image:
     if bbox:
         img = img.crop(bbox)
     ratio = min(box_w / img.width, box_h / img.height)
-    return img.resize(
-        (int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS
-    )
+    return img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
 
 
 def build() -> None:
@@ -127,9 +125,7 @@ def build() -> None:
     # --- right: the LISA map on a translucent card -------------------------------
     card = (1560, 110, 2740, 1394)
     panel = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(panel).rounded_rectangle(
-        card, radius=44, fill=(255, 255, 255, 234)
-    )
+    ImageDraw.Draw(panel).rounded_rectangle(card, radius=44, fill=(255, 255, 255, 234))
     hero = Image.alpha_composite(hero, panel)
     draw = ImageDraw.Draw(hero)
 
@@ -159,17 +155,13 @@ def build() -> None:
 
     tag_font = _font(74)
     for i, line in enumerate(TAGLINE):
-        draw.text(
-            (178, 740 + i * 104), line, font=tag_font, fill=(224, 236, 250, 255)
-        )
+        draw.text((178, 740 + i * 104), line, font=tag_font, fill=(224, 236, 250, 255))
 
     sub_font = _font(46)
     for i, line in enumerate(
         ("Built on the PySAL stack —", "maps, models, and plain-language readings.")
     ):
-        draw.text(
-            (178, 1010 + i * 66), line, font=sub_font, fill=(190, 212, 240, 255)
-        )
+        draw.text((178, 1010 + i * 66), line, font=sub_font, fill=(190, 212, 240, 255))
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     hero.convert("RGB").save(OUT, "WEBP", quality=82, method=6)

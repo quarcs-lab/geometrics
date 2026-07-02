@@ -135,6 +135,25 @@ quartodoc:
       contents:
         - analyze_gwr
         - analyze_mgwr
+    - title: Learn (concept sandboxes)
+      desc: >-
+        Monte-Carlo teaching sandboxes that simulate data from a known
+        data-generating process so a learner can watch each estimator recover a
+        planted parameter. No data required — each takes keyword knobs and returns
+        `.df` / `.fig` / `.summary` / `.interpret()`. The two Markov sandboxes need
+        the `dynamics` extra.
+      contents:
+        - learn_spatial_autocorrelation
+        - learn_spatial_weights
+        - learn_lisa_clusters
+        - learn_spatial_spillovers
+        - learn_omitted_spatial_lag
+        - learn_beta_convergence
+        - learn_sigma_convergence
+        - learn_convergence_clubs
+        - learn_markov_chains
+        - learn_spatial_markov
+        - learn_theil_decomposition
     - title: Utilities
       desc: >-
         Cross-cutting helpers — geometry loading, spatial-weights construction, panel

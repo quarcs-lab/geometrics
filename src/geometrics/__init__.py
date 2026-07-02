@@ -33,6 +33,7 @@ from geometrics._types import (
     MGWRResult,
     MoranOverTimeResult,
     MoranPlotResult,
+    SandboxResult,
     SigmaConvergenceResult,
     SpacetimeHeatmapResult,
     SpatialDiagnosticsResult,
@@ -63,6 +64,19 @@ from geometrics.regional_inequality import (
     analyze_inequality_over_time,
     analyze_theil_decomposition,
 )
+from geometrics.sandbox import (
+    learn_beta_convergence,
+    learn_convergence_clubs,
+    learn_lisa_clusters,
+    learn_markov_chains,
+    learn_omitted_spatial_lag,
+    learn_sigma_convergence,
+    learn_spatial_autocorrelation,
+    learn_spatial_markov,
+    learn_spatial_spillovers,
+    learn_spatial_weights,
+    learn_theil_decomposition,
+)
 from geometrics.spacetime import (
     explore_distribution_over_time,
     explore_spacetime_heatmap,
@@ -74,7 +88,7 @@ from geometrics.spatial_models import (
 )
 from geometrics.weights import explore_connectivity_map, make_weights
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -107,6 +121,19 @@ __all__ = [
     # local models (mgwr)
     "analyze_gwr",
     "analyze_mgwr",
+    # ===== LEARN =====
+    # concept sandboxes (simulate from a known DGP; never for user data)
+    "learn_spatial_autocorrelation",
+    "learn_spatial_weights",
+    "learn_lisa_clusters",
+    "learn_spatial_spillovers",
+    "learn_omitted_spatial_lag",
+    "learn_beta_convergence",
+    "learn_sigma_convergence",
+    "learn_convergence_clubs",
+    "learn_markov_chains",
+    "learn_spatial_markov",
+    "learn_theil_decomposition",
     # ===== UTILITIES =====
     "read_gdf",
     "make_weights",
@@ -144,4 +171,5 @@ __all__ = [
     "TheilDecompositionResult",
     "GWRResult",
     "MGWRResult",
+    "SandboxResult",
 ]

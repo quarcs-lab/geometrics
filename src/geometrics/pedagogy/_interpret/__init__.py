@@ -46,6 +46,7 @@ _SUBMODULES = {
     "interpret_theil_decomposition": "_inequality",
     "interpret_gwr": "_gwr",
     "interpret_mgwr": "_gwr",
+    "interpret_sandbox": "_sandbox",
 }
 
 

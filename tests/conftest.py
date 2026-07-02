@@ -39,18 +39,11 @@ CONV_PERIODS = (2000, 2001, 2002, 2003, 2004, 2005)
 @pytest.fixture(scope="session")
 def grid_gdf():
     """8x8 lattice of square cells with entity ids u00..u63 (EPSG:4326)."""
-    import geopandas as gpd
-    from shapely.geometry import box
+    from geometrics.sandbox._dgp import lattice_gdf
 
-    cells = []
-    ids = []
-    for row in range(GRID_SIDE):
-        for col in range(GRID_SIDE):
-            x0 = GRID_LON0 + col * GRID_STEP
-            y0 = GRID_LAT0 + row * GRID_STEP
-            cells.append(box(x0, y0, x0 + GRID_STEP, y0 + GRID_STEP))
-            ids.append(f"u{row * GRID_SIDE + col:02d}")
-    return gpd.GeoDataFrame({"unit": ids}, geometry=cells, crs="EPSG:4326")
+    return lattice_gdf(
+        GRID_SIDE, lon0=GRID_LON0, lat0=GRID_LAT0, step=GRID_STEP, prefix="u"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -72,17 +65,17 @@ def sar_field(grid_gdf, grid_w):
     Returns a long-form frame with one period (year 2020) and columns
     ``unit, year, x1, x2, y`` in the lattice's row order.
     """
+    from geometrics.sandbox._dgp import dense_w, solve_sar
+
     rng = np.random.default_rng(RNG_SEED)
     ids = list(grid_gdf["unit"])
-    w_dense, w_ids = grid_w.full()
-    order = [w_ids.index(i) for i in ids]
-    w_dense = w_dense[np.ix_(order, order)]
+    w_dense = dense_w(grid_w, ids)
 
     x1 = rng.normal(0.0, 1.0, GRID_N)
     x2 = rng.normal(0.0, 1.0, GRID_N)
     eps = rng.normal(0.0, 0.5, GRID_N)
     xb = SAR_BETA[0] * x1 + SAR_BETA[1] * x2 + eps
-    y = np.linalg.solve(np.eye(GRID_N) - SAR_RHO * w_dense, xb)
+    y = solve_sar(w_dense, xb, SAR_RHO)
 
     return pd.DataFrame({"unit": ids, "year": 2020, "x1": x1, "x2": x2, "y": y})
 
@@ -96,14 +89,13 @@ def convergence_panel(grid_gdf):
     deviation of ``log y`` shrinks mechanically over time (sigma-convergence). The
     ``gdppc`` column is strictly positive (levels), suitable for Gini/Theil measures.
     """
-    rng = np.random.default_rng(RNG_SEED + 1)
-    ids = list(grid_gdf["unit"])
-    log_y0 = rng.normal(9.0, 0.8, GRID_N)
+    from geometrics.sandbox._dgp import convergence_panel as make_convergence_panel
 
-    rows = []
-    for t_index, year in enumerate(CONV_PERIODS):
-        drift = t_index * (CONV_A - CONV_B * log_y0)
-        noise = rng.normal(0.0, 0.005, GRID_N) if t_index else np.zeros(GRID_N)
-        log_y = log_y0 + drift + noise
-        rows.append(pd.DataFrame({"unit": ids, "year": year, "gdppc": np.exp(log_y)}))
-    return pd.concat(rows, ignore_index=True)
+    return make_convergence_panel(
+        list(grid_gdf["unit"]),
+        periods=CONV_PERIODS,
+        b=CONV_B,
+        a=CONV_A,
+        noise_sd=0.005,
+        seed=RNG_SEED + 1,
+    )

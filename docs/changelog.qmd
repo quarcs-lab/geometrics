@@ -2,6 +2,23 @@
 title: "Changelog"
 ---
 
+## v0.1.2 (2026-07-02)
+
+- **The Learn module: 11 `learn_*` concept sandboxes.** Each simulates data from a
+  known data-generating process so a learner can watch the estimator recover a
+  planted parameter, returning a frozen `SandboxResult` (`.df` estimated-vs-truth
+  table, `.fig`, `.summary` scalar facts, `.data` raw simulated frame,
+  `.interpret()` / `.explain()`): `learn_spatial_autocorrelation`,
+  `learn_spatial_weights`, `learn_lisa_clusters`, `learn_spatial_spillovers`
+  (closed-form LeSage-Pace truth), `learn_omitted_spatial_lag`,
+  `learn_beta_convergence`, `learn_sigma_convergence`, `learn_convergence_clubs`,
+  `learn_markov_chains`, `learn_spatial_markov` (both via the `dynamics` extra), and
+  `learn_theil_decomposition` (independent numpy truth).
+- The shared synthetic geographies and planted-parameter processes now live in
+  `geometrics.sandbox._dgp`; the test suite's known-answer fixtures delegate to them.
+- Visual identity: the "classified lattice" logo/favicon and a hero image built from
+  the real India LISA cluster map; new [For AI / LLMs](use-with-llms.qmd) page.
+
 ## v0.1.1 (2026-07-02)
 
 - **New dataset: Bolivia (BOL-005popAdj-PWTscaled)** — the 0.25° gridded GDP of

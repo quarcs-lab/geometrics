@@ -54,9 +54,10 @@ def _api_groups() -> list[tuple[str, list[str]]]:
     return [
         ("explore_*", [n for n in names if n.startswith("explore_")]),
         ("analyze_*", [n for n in names if n.startswith("analyze_")]),
+        ("learn_*", [n for n in names if n.startswith("learn_")]),
         (
             "utilities",
-            [n for n in names if not n.startswith(("explore_", "analyze_"))],
+            [n for n in names if not n.startswith(("explore_", "analyze_", "learn_"))],
         ),
         (
             "geometrics.data",
