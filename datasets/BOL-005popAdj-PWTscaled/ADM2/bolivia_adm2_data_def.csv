@@ -1,0 +1,22 @@
+var_name,var_def,label,type,role,can_be_na
+level,"Aggregation level of the row (adm0=country, adm1=GADM L1, adm2=GADM L2).",Aggregation level,factor,,False
+gid,"GADM region code at this level (GID_1 for adm1, GID_2 for adm2). Unique together with iso; a few disputed regions (e.g. Z0x codes) appear under more than one country.",Region code (GID),entity,,False
+name,"GADM region name at this level (NAME_1 for adm1, NAME_2 for adm2).",Region,factor,entity_name,False
+engtype,"GADM region type in English (ENGTYPE_n; e.g. State, Province, Department, County).",Region type,factor,,False
+gid1,GADM GID_1 of the admin1 region this admin2 unit belongs to.,Parent admin1 code,factor,,False
+name1,GADM NAME_1 of the parent admin1 region.,Parent admin1 name,factor,,False
+iso,ISO3 country code (GADM GID_0); HKG/MAC/XKX restored to the cell-data codes. For region panels it is the parent country and part of the compound entity key.,Country (ISO3),entity,,False
+country,Country name (GADM COUNTRY / NAME_0).,Country,factor,,False
+year,Calendar year of the estimate (2012-2022).,Year,time,,False
+threshold,"Low-population-density adjustment variant. Constant in each export (no_extra_adjust for model-scale panels, 0_05 for the PWT-scaled panels).",Threshold,factor,,False
+gcp_model,"Sum of model GCP over the region's cells, model-scale const 2021 PPP (provenance).","Model GCP (provenance, const 2021 PPP)",numeric,,False
+pop_persons,"Sum of cell population over the region, persons (provenance).","Population (sum of cells, persons)",numeric,,False
+gdp_scale,Per-year national GDP raking factor = PWT rgdpo / sum(model GCP).,GDP raking factor,numeric,,False
+pop_scale,Per-year national population raking factor = PWT pop / sum(pop_cell).,Population raking factor,numeric,,False
+gdp_pwt,GDP rescaled to PWT; national sum per year equals PWT rgdpo exactly.,GDP rescaled to PWT (mil. 2021 US$ PPP),numeric,,False
+pop_pwt,Population rescaled to PWT; national sum per year equals PWT pop exactly.,Population rescaled to PWT (millions),numeric,,False
+gdppc,"gdp_pwt / pop_pwt, 2021 US$/person; 0 for censored cells, missing if zero population.",GDP per capita (2021 US$ PPP),numeric,,False
+ln_gdppc,Natural log of gdppc; missing where gdppc <= 0 (censored / zero-pop).,Log GDP per capita,numeric,outcome,False
+n_cells,Number of 0.25-degree cells aggregated into this region-year.,N cells,numeric,,False
+n_cells_nearest,"Of n_cells, the number placed by the nearest-region fallback (centroid outside all polygons; lower confidence). 0 at adm0.",N cells (nearest fallback),numeric,,False
+pop_nat,MAX(national_population) for the country-year; reference only. At adm1/adm2 it is identical across a country's regions and is NOT a valid sub-national denominator.,National population (ref),numeric,,False
