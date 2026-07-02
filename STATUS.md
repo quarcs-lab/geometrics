@@ -59,9 +59,9 @@ site-wide link audit now comes back fully clean.
 
 ## Status of checks
 
-- **Tests** — `make test` green (457 passed: known-answer, result-surface, sandbox
-  recovery, and 17 offline AppTest smoke tests); `-m network` green (real-data
-  roundtrips incl. Table-1 paper parity).
+- **Tests** — `make test` green (469 passed: known-answer, result-surface, sandbox
+  recovery, package-import laziness guards, and 17 offline AppTest smoke tests);
+  `-m network` green (real-data roundtrips incl. Table-1 paper parity).
 - **Lint / types** — `ruff check`, `ruff format --check`, and `mypy src` clean.
 - **Docs** — `make docs` renders the full site with every example executing; the
   module notebooks and `llms.txt` are drift-checked in CI and fresh.
@@ -79,6 +79,16 @@ site-wide link audit now comes back fully clean.
 - The Intel-mac numba constraints in `[tool.uv] constraint-dependencies` and the
   registered `geometrics` Jupyter kernelspec for docs builds must stay (see
   `CLAUDE.md`).
+- **Cold-start budget** — package imports are lazy (PEP 562 `__getattr__` in
+  `src/geometrics/__init__.py`): a bare `import geometrics` loads one module and no heavy
+  libraries (~0.02s, vs ~2.8s warm / ~70s on a cold container and 42 submodules +
+  geopandas/statsmodels/great_tables/plotly before), and each public name imports only its
+  own submodule on first access — so a Learn sandbox pulls nothing heavy and an Explore map
+  pulls only geopandas. Wire any new public function through `_SUBMODULE_EXPORTS` there (a
+  module-level assert guards it against `__all__`). The **keep-warm** workflow
+  (`.github/workflows/keep-warm.yml`) pings each app's `/_stcore/health` every ~10 min so
+  Community Cloud never sleeps the containers (the "slow first load"); a free UptimeRobot
+  monitor is the zero-Actions fallback.
 
 ## Open items / next steps
 
@@ -86,6 +96,11 @@ site-wide link audit now comes back fully clean.
   container); documented as "run locally".
 - **Bolivia grid in the app picker** — excluded (1,603 polygons strain the free tier);
   available via `load_bolivia_grid()`.
+- **Host for headroom** — Hugging Face Spaces (Docker SDK, free tier: 2 vCPU / 16 GB vs
+  Community Cloud's 1 shared vCPU / ~1 GB) is the recommended path when the apps need more
+  room: it bakes deps into the image (no reinstall on wake, faster cold start) and would
+  let the Bolivia grid and in-app MGWR return. A one-Space pilot of `streamlit_app.py` (the
+  module chooser) can A/B against the current `.streamlit.app` URLs before committing.
 - **AI layer** — `llms.txt` / `llms-full.txt` and the For AI / LLMs page ship today;
   function-calling tool schemas and an MCP server (expdpy-style) are natural later
   patch releases.

@@ -1,0 +1,41 @@
+# Keep the three Streamlit Community Cloud apps awake so visitors never hit a cold wake.
+#
+# Community Cloud puts an app to sleep after a stretch of no traffic; the next visitor then
+# waits for the container to rebuild — the "slow first load". A light periodic request
+# resets the inactivity timer, so the apps stay warm and open instantly.
+#
+# Notes / caveats:
+#   * GitHub disables scheduled workflows after ~60 days with no repo activity, and may
+#     delay `schedule` runs under load — a run every ~10 min is best-effort, not exact.
+#   * Zero-maintenance alternative: a free UptimeRobot monitor (5-min interval) on the same
+#     /_stcore/health URLs does the same thing without depending on Actions.
+#   * If the apps move to Hugging Face Spaces, add the Space URL(s) to the matrix below.
+name: Keep apps warm
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [explore, analyze, learn]
+    steps:
+      - name: Ping health endpoint
+        run: |
+          url="https://geometrics-${{ matrix.app }}.streamlit.app/_stcore/health"
+          code=$(curl -sS -L --max-time 60 -o /dev/null -w '%{http_code}' "$url" || echo "000")
+          echo "geometrics-${{ matrix.app }} -> HTTP $code"
+          # Best-effort: a transient non-200 (or a wake in progress) must not fail the job.
+          if [ "$code" != "200" ]; then
+            echo "::warning::geometrics-${{ matrix.app }} returned $code (transient wake or outage?)"
+          fi
