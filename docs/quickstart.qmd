@@ -1,0 +1,132 @@
+---
+title: "Quickstart"
+subtitle: "From a map and a panel to convergence with spillovers, in a few lines"
+---
+
+geometrics needs three inputs: a geometry with **only the entity ID** (`gdf`), a
+**long-form panel** (`df`), and a **data dictionary** (`df_dict`). The bundled Indian
+case study — 520 districts observed by DMSP-OLS satellite nighttime lights between
+1996 and 2010, from
+[Mendez, Kabiraj & Li](https://github.com/quarcs-lab/project2025s-py) — ships all
+three.
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)  # labels + entity/time + roles, once
+df.head(3)
+```
+
+The dictionary is data too — it documents every column and drives labels on every
+figure:
+
+```{python}
+df_dict.head(8)
+```
+
+## See the map
+
+`explore_choropleth_map` classifies with mapclassify (Fisher-Jenks by default) and
+draws one legend entry per class:
+
+```{python}
+gm.explore_choropleth_map(df, "ntl_total", gdf=gdf, period=2010).fig
+```
+
+## Encode the neighborhood
+
+Spatial analysis starts with a weights matrix. The paper uses 6 nearest neighbors;
+`explore_connectivity_map` checks the graph before you trust it:
+
+```{python}
+w = gm.make_weights(gdf, method="knn", k=6, crs=None)
+gm.explore_connectivity_map(gdf, w=w).fig
+```
+
+## Is luminosity spatially clustered?
+
+```{python}
+lisa = gm.explore_lisa_cluster_map(
+    df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996
+)
+lisa.fig
+```
+
+```{python}
+print(lisa.interpret())
+```
+
+## Convergence — first without, then with spillovers
+
+`analyze_beta_convergence` builds the growth cross-section from the panel internally.
+The `model` switch moves from OLS to the spatial Durbin model (SDM), where the
+convergence estimate becomes a LeSage-Pace **total impact** with direct and indirect
+(spillover) components:
+
+```{python}
+ols = gm.analyze_beta_convergence(df, "ntl_total", model="ols")
+sdm = gm.analyze_beta_convergence(
+    df, "ntl_total", model="sdm", gdf=gdf, w=w, n_draws=2000
+)
+print(
+    f"OLS beta: {ols.beta_total:.4f}  (speed {ols.speed:.3f}, "
+    f"half-life {ols.half_life:.0f} yr)\n"
+    f"SDM total: {sdm.beta_total:.4f} = direct {sdm.beta_direct:.4f} "
+    f"+ indirect {sdm.beta_indirect:.4f}  (rho = {sdm.rho:.2f}, "
+    f"speed {sdm.speed:.3f})"
+)
+```
+
+```{python}
+sdm.fig
+```
+
+```{python}
+print(sdm.interpret())
+```
+
+## Is the gap narrowing? (σ-convergence)
+
+Dispersion measures work on log values, so they require strictly positive series —
+one district records zero luminosity in some years, and geometrics tells you exactly
+that if you pass it. Filter to the always-positive panel first:
+
+```{python}
+bad = df.loc[df["ntl_total"] <= 0, "statedist"].unique()
+pos = gm.set_labels(
+    df[~df["statedist"].isin(bad)].copy(), df_dict, set_panel=True
+)
+
+sigma = gm.analyze_sigma_convergence(pos, "ntl_total")
+sigma.fig
+```
+
+```{python}
+print(sigma.interpret())
+```
+
+## Every result works the same way
+
+Each function returns a frozen result object: `.df` (the tidy frame behind the
+figure), `.fig` (Plotly) and/or `.gt` (Great Tables), named scalars, `.interpret()`
+(a plain-language reading), and `.explain()` (the concept explainer):
+
+```{python}
+print(gm.explain("spatial_convergence").to_markdown()[:600], "...")
+```
+
+## Where next
+
+- [The India case study](articles/india-case-study.qmd) — the full replication arc:
+  maps → LISA → SDM spillovers → robustness → distribution dynamics → inequality
+- [Beta and sigma convergence](articles/convergence.qmd), including convergence clubs
+- [Spatial spillovers](articles/spillovers.qmd) — the spreg suite, diagnostics, and
+  alternative-weights robustness
+- [Distribution dynamics](articles/dynamics.qmd) — Markov and spatial Markov chains
+- [Regional inequality](articles/inequality.qmd) — Gini/Theil with decompositions
+- [The data model](articles/data-model.qmd) — bring your own (gdf, df, df_dict)

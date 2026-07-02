@@ -1,0 +1,210 @@
+---
+title: "Spatial dependence and LISA"
+subtitle: "Who counts as a neighbor, whether the map clusters, and where"
+---
+
+Every spatial statistic answers a question *relative to a definition of
+neighborhood*. This article walks the exploratory spatial data analysis (ESDA)
+arc on the bundled India case study — 520 districts observed by satellite
+nighttime lights, 1996–2010: encode the neighborhood as a weights matrix, audit
+it visually, test whether luminosity clusters globally (Moran's I), locate the
+clusters locally (LISA), and track the clustering over time.
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)
+
+# The paper's weights: 6 nearest neighbors on plain lon/lat centroids (crs=None)
+w = gm.make_weights(gdf, method="knn", k=6, crs=None)
+```
+
+## What a weights matrix is
+
+The spatial weights matrix **W** is the formal answer to "who is whose
+neighbor": cell (i, j) is nonzero when district j counts as a neighbor of
+district i. It is not a nuisance parameter — Moran's I, LISA, and every spatial
+regression are defined *conditional on the chosen W*. The built-in explainer
+says it best:
+
+```{python}
+print(gm.explain("spatial_weights").to_markdown()[:800], "...")
+```
+
+## Building weights: `make_weights`
+
+`make_weights` covers the standard families with the library's conventions
+baked in: entity ids as the weight ids, row standardization, and a
+human-readable one-liner recorded on `w.geometrics_meta["spec"]` (every spatial
+result carries it forward as `w_spec`, so figures and tables always document
+their W). Three variants on the India map:
+
+```{python}
+variants = {
+    "queen": gm.make_weights(gdf, method="queen"),
+    "knn6": w,
+    "inverse distance": gm.make_weights(gdf, method="inverse_distance", power=2),
+}
+for name, wx in variants.items():
+    print(f"{name:>18}: {wx.geometrics_meta['spec']}")
+```
+
+Each spec string tells a small story:
+
+- **Queen contiguity** connects districts that share a border or corner. One
+  district — Mumbai, an island city that shares no boundary in this topology —
+  has no queen neighbor at all, and `make_weights` **attaches it to its nearest
+  neighbor automatically** (with a `GeometricsWarning` naming it), because a
+  zero-neighbor unit has no spatial lag and breaks estimators downstream. The
+  fix is recorded in the spec.
+- **k-nearest neighbors** guarantees every district exactly k neighbors —
+  useful when polygons vary wildly in size. `crs=None` reproduces the source
+  paper's lon/lat-centroid construction; the geometrics default (`crs="auto"`)
+  would project to a metric CRS first.
+- **Inverse distance** encodes smooth decay, $1/d^p$ within a radius.
+  With `threshold=None` the band is the smallest radius that leaves no district
+  isolated — about 163 km here.
+
+## Audit the graph before trusting it
+
+`explore_connectivity_map` draws the neighbor graph over the map and summarizes
+its health — the standard visual check of a W before any statistic is computed
+on it:
+
+```{python}
+conn = gm.explore_connectivity_map(gdf, w=w)
+print(f"{conn.n_units} units, {conn.mean_neighbors:.0f} neighbors each "
+      f"({conn.min_neighbors}-{conn.max_neighbors}); "
+      f"{conn.pct_nonzero:.2f}% of pairs connected; "
+      f"{conn.n_components} connected component(s); islands: {list(conn.islands)}")
+```
+
+```{python}
+conn.fig
+```
+
+The scalars are the audit: a **single connected component** (global statistics
+implicitly assume every unit can reach every other through a chain of
+neighbors), **no islands**, and a sparse graph — each spatial lag averages over
+a small, local set of six districts. A companion histogram of neighbor counts
+is available as `conn.fig_hist` (trivially a spike at 6 for k-NN weights, more
+informative for contiguity).
+
+```{python}
+print(conn.interpret())
+```
+
+## Is initial luminosity clustered? The Moran scatterplot
+
+`explore_moran_plot` z-standardizes the variable, plots each district's value
+against the average of its neighbors' values (the **spatial lag**), and colors
+the four quadrants: **High-High** and **Low-Low** (clustering of similars) on
+the diagonal, **Low-High** and **High-Low** (spatial outliers) off it. Under
+row-standardized weights the slope of the fitted line *equals* global Moran's
+I, and a stat box in the corner reports I, its expectation under spatial
+randomness, and the permutation pseudo p-value:
+
+```{python}
+moran = gm.explore_moran_plot(df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996)
+moran.fig
+```
+
+```{python}
+moran.glance().round(3)
+```
+
+Initial luminosity per capita is strongly and positively autocorrelated —
+**Moran's I ≈ 0.73** against an expectation near zero, the value the source
+paper reports. Most districts sit in the two clustering quadrants:
+
+```{python}
+print(moran.df["quadrant"].value_counts().to_string())
+print()
+print(moran.interpret())
+```
+
+## Where does it cluster? LISA
+
+Global Moran's I says *that* the map clusters; local Moran statistics (LISA)
+say *where*. Each district gets a local statistic and its own permutation
+pseudo p-value; districts significant at `alpha` receive their quadrant's
+cluster label, everything else is "Not significant":
+
+```{python}
+lisa = gm.explore_lisa_cluster_map(df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996)
+lisa.fig
+```
+
+```{python}
+print(lisa.interpret())
+```
+
+The picture matches the literature: a bright **High-High belt** and a dim
+**Low-Low block**, with only a handful of spatial outliers.
+
+### How sensitive are the clusters to alpha?
+
+The cluster labels are a significance mask, so they move with the threshold.
+Re-running at `alpha=0.01` keeps the geography but shrinks the significant set:
+
+```{python}
+import pandas as pd
+
+lisa01 = gm.explore_lisa_cluster_map(
+    df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996, alpha=0.01
+)
+pd.DataFrame(
+    {
+        "alpha = 0.05": [lisa.n_hh, lisa.n_ll, lisa.n_lh, lisa.n_hl, lisa.n_ns],
+        "alpha = 0.01": [lisa01.n_hh, lisa01.n_ll, lisa01.n_lh, lisa01.n_hl, lisa01.n_ns],
+    },
+    index=["High-High", "Low-Low", "Low-High", "High-Low", "Not significant"],
+)
+```
+
+Tightening alpha from 0.05 to 0.01 drops the significant count from 281 to 175
+districts. The hot and cold *cores* survive; the borderline fringe does not —
+which is exactly how a LISA map should be read.
+
+## Is the clustering strengthening? Moran's I over time
+
+`explore_moran_over_time` pivots the panel wide, keeps the one entity set with
+complete data in every period (so the same W applies throughout and the values
+are comparable), and re-tests each of the six satellite years:
+
+```{python}
+mot = gm.explore_moran_over_time(df, "ntl_total", gdf=gdf, w=w)
+mot.df.round(3)
+```
+
+```{python}
+mot.fig
+```
+
+```{python}
+print(mot.interpret())
+```
+
+The answer is: **strong throughout, but not strengthening**. Moran's I for
+total luminosity fluctuates in a narrow band (roughly 0.39–0.45) and every year
+rejects spatial randomness at the 1% level — spatial dependence is a persistent
+feature of India's economic geography over the window, not a trend.
+
+## A caveat, and where next
+
+LISA runs one permutation test **per district** — 520 tests here, with no
+multiple-testing adjustment, so at `alpha = 0.05` roughly 26 "significant"
+districts would be expected even under complete spatial randomness. Treat the
+cluster map as *descriptive* of where dependence concentrates (the alpha
+sensitivity table above is the practical check), not as 520 confirmatory
+hypothesis tests. The same warning is built into `lisa.interpret()`.
+
+Detecting dependence is the exploratory half. Modeling it — letting growth
+respond to neighbors' outcomes and characteristics, and decomposing
+associations into direct and spillover components — is the job of the spreg
+suite, covered in [Spatial spillovers: the spreg suite](spillovers.qmd).

@@ -1,0 +1,214 @@
+---
+title: "Beta and sigma convergence (and clubs)"
+subtitle: "Do laggards catch up, is the gap narrowing, and does everyone converge to the same place?"
+---
+
+Three questions, three tools. **β-convergence** asks whether units that start behind
+grow faster (`analyze_beta_convergence`); **σ-convergence** asks whether the
+cross-sectional spread is actually narrowing (`analyze_sigma_convergence`); and when
+neither gives a clean verdict, **convergence clubs** ask whether the panel splits
+into groups that each converge to their own path (`analyze_convergence_clubs`). This
+article runs all three on the bundled India panel — 520 districts observed by
+satellite nighttime lights, 1996-2010 — using the raw panel variable `ntl_total`
+(the paper's per-capita replication lives in
+[the India case study](india-case-study.qmd)).
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import numpy as np
+import pandas as pd
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)
+```
+
+Every concept in the library ships a built-in explainer. Here is how
+`gm.explain` introduces the β-convergence idea:
+
+```{python}
+print(gm.explain("beta_convergence").to_markdown()[:960], "...")
+```
+
+## β-convergence, first ignoring space
+
+`analyze_beta_convergence` builds the growth cross-section internally: for each
+district, total luminosity in levels at 1996 and 2010, and the annualized log growth
+between them, regressed on the **initial log level**. A negative slope is
+convergence.
+
+```{python}
+ols = gm.analyze_beta_convergence(df, "ntl_total", model="ols")
+ols.fig
+```
+
+The result object carries the headline scalars — the slope, the implied structural
+speed λ = -ln(1 + β·T)/T, and the half-life ln 2 / λ (the years needed to close half
+of an initial gap):
+
+```{python}
+print(
+    f"beta = {ols.beta_total:.4f} (SE {ols.se_total:.4f}), R2 = {ols.r2:.3f}, "
+    f"N = {ols.n_obs}\n"
+    f"speed = {ols.speed:.4f} per year -> half-life = {ols.half_life:.0f} years"
+)
+```
+
+```{python}
+print(ols.interpret())
+```
+
+## Adding spillovers: the spatial Durbin model
+
+Districts are not islands — initial luminosity and its growth are both spatially
+clustered (see [the India case study](india-case-study.qmd) for the LISA maps). The
+`model` switch re-estimates the same regression with `spreg`'s spatial family; the
+paper's choice is the **spatial Durbin model** (SDM) on 6-nearest-neighbor weights
+built, like the paper, on plain lon/lat centroids (`crs=None`):
+
+```{python}
+w = gm.make_weights(gdf, method="knn", k=6, crs=None)
+
+sdm = gm.analyze_beta_convergence(
+    df, "ntl_total", model="sdm", gdf=gdf, w=w, n_draws=2000
+)
+```
+
+With a spatial lag in the model, the raw coefficient is no longer the answer. The
+convergence estimate becomes a LeSage-Pace **impact**: a **direct** part (a
+district's own initial level and its own growth), an **indirect** part (the
+neighborhood's initial level — the spillover), and their **total**, with Monte-Carlo
+standard errors from `n_draws` draws (2,000 here for speed; the default is 10,000).
+`res.impacts` tabulates the decomposition for every regressor:
+
+```{python}
+sdm.impacts
+```
+
+Side by side with OLS — the pattern of the source paper's Table 1:
+
+```{python}
+comparison = pd.DataFrame(
+    {
+        "OLS": [ols.beta_total, np.nan, ols.beta_total, np.nan,
+                ols.speed, ols.half_life],
+        "SDM": [sdm.beta_direct, sdm.beta_indirect, sdm.beta_total, sdm.rho,
+                sdm.speed, sdm.half_life],
+    },
+    index=["direct", "indirect", "total", "rho (spatial lag)",
+           "speed (per yr)", "half-life (yr)"],
+).round(4)
+comparison
+```
+
+```{python}
+print(sdm.interpret())
+```
+
+The OLS β understates catch-up: once the spatial lag (ρ ≈ 0.7) and the neighbors'
+initial levels enter, the total impact is larger in magnitude than the OLS slope,
+and the implied convergence speed rises — part of every district's catch-up is
+associated with its *neighborhood*, which OLS attributes to nothing. How these
+impacts are computed, tested and stress-checked against other weights is the subject
+of the [spatial spillovers article](spillovers.qmd).
+
+## Mapping who grew: `growth_cross_section`
+
+The same one-row-per-unit growth table the regression uses is available directly —
+handy for mapping the dependent variable before modelling it. It returns a plain
+DataFrame (entity, `initial`, `final`, `growth`) with the panel entity already
+declared, so it feeds straight into `explore_choropleth_map`:
+
+```{python}
+cs = gm.growth_cross_section(df, "ntl_total")
+cs = gm.set_labels(cs, {"growth": "NTL growth (annualized log), 1996-2010"})
+gm.explore_choropleth_map(cs, "growth", gdf=gdf).fig
+```
+
+## σ-convergence: is the gap actually narrowing?
+
+β-convergence is necessary but not sufficient for the distribution to compress —
+new shocks can re-spread it even while laggards catch up. `analyze_sigma_convergence`
+tracks the cross-sectional dispersion of the **log** of the variable per period (the
+standard deviation, the Gini, the coefficient of variation) and tests the trend of
+the log dispersion over time.
+
+Because dispersion is measured on logs, the series must be strictly positive — and
+one district (Lahul and Spiti, Himachal Pradesh) records zero luminosity in some
+years. Pass the full panel and geometrics refuses, telling you exactly why:
+
+```{python}
+try:
+    gm.analyze_sigma_convergence(df, "ntl_total")
+except ValueError as err:
+    print(err)
+```
+
+So filter to the always-positive balanced panel first, exactly as the
+[quickstart](../quickstart.qmd) does — dropping the offending *district* (all its
+years, keeping the panel balanced), not just the offending rows:
+
+```{python}
+bad = df.loc[df["ntl_total"] <= 0, "statedist"].unique()
+pos = gm.set_labels(
+    df[~df["statedist"].isin(bad)].copy(), df_dict, set_panel=True
+)
+
+sigma = gm.analyze_sigma_convergence(pos, "ntl_total")
+sigma.fig
+```
+
+```{python}
+print(sigma.interpret())
+```
+
+Both answers agree here: dimmer districts grew faster (β), *and* the distribution
+narrowed (σ). That is not guaranteed — report both.
+
+## Convergence clubs: one destination, or several?
+
+A single β can also paper over a split panel: some districts converging to a high
+path, others to a low one. The Phillips-Sul **log(t)** machinery tests whole-panel
+convergence and, when it is rejected, clusters the districts into data-driven
+**convergence clubs** from their relative transition paths. It runs on the same
+always-positive subset (the HP smoothing and relative transitions need a gap-free,
+strictly positive series); pass the matching geometry to get the club map. The
+clustering sieve refits thousands of log(t) regressions, so expect roughly a minute
+for the 519 districts — that is normal:
+
+```{python}
+gdf_pos = gdf[~gdf["statedist"].isin(bad)].copy()
+
+clubs = gm.analyze_convergence_clubs(pos, "ntl_total", gdf=gdf_pos)
+print(
+    f"global log-t = {clubs.global_tstat:.1f} (converged: {clubs.converged}) -> "
+    f"{clubs.n_clubs} clubs, {clubs.n_divergent} divergent districts"
+)
+```
+
+Global convergence is emphatically rejected — the districts sort into clubs, each
+converging to its own path. The membership map shows where those paths live:
+
+```{python}
+clubs.fig
+```
+
+```{python}
+clubs.fig_map
+```
+
+```{python}
+print(clubs.interpret())
+```
+
+## Where next
+
+- [Spatial spillovers](spillovers.qmd) — the full spreg suite behind `model="sdm"`:
+  specification diagnostics, impact inference, and robustness to the weights choice
+- [The India case study](india-case-study.qmd) — this toolkit inside the complete
+  replication arc, on the paper's exact per-capita growth variable
+- [The data model](data-model.qmd) — bring your own `(gdf, df, df_dict)`

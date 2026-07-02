@@ -230,6 +230,21 @@ def _class_colors(k: int) -> list[str]:
     return pcolors.sample_colorscale(MAP_SEQUENTIAL, points)
 
 
+def _subset_fc(fc: dict, wanted: Sequence[Any]) -> dict:
+    """Return ``fc`` restricted to the features whose ``id`` is in ``wanted``.
+
+    Multi-trace maps draw one trace per class; embedding the *full*
+    FeatureCollection in every trace multiplies the geometry payload by the number
+    of classes (and again by the number of animation frames). Subsetting keeps the
+    total geometry at one copy per figure, since class members partition the map.
+    """
+    keep = set(wanted)
+    return {
+        "type": "FeatureCollection",
+        "features": [f for f in fc["features"] if f.get("id") in keep],
+    }
+
+
 def _clean_values(values: ArrayLike, n: int, *, func: str) -> np.ndarray:
     """Validate ``values`` (float, complete, one per gdf row) and return the array."""
     vals = np.asarray(values, dtype=float).ravel()
@@ -348,11 +363,12 @@ def classified_map(
     fig = go.Figure()
     for ci in range(len(upper)):
         members = np.flatnonzero(yb == ci)
+        member_ids = [ids[j] for j in members]
         fig.add_trace(
             _polygon_trace(
                 tiles,
-                geojson=fc,
-                locations=[ids[j] for j in members],
+                geojson=_subset_fc(fc, member_ids),
+                locations=member_ids,
                 z=[ci] * len(members),
                 colorscale=[[0.0, colors[ci]], [1.0, colors[ci]]],
                 showscale=False,
@@ -460,11 +476,12 @@ def categorical_map(
     for ci, cat in enumerate(categories):
         color = colors.get(cat, color_for(ci))
         members = [j for j, lab in enumerate(labs) if lab == cat]
+        member_ids = [ids[j] for j in members]
         fig.add_trace(
             _polygon_trace(
                 tiles,
-                geojson=fc,
-                locations=[ids[j] for j in members],
+                geojson=_subset_fc(fc, member_ids),
+                locations=member_ids,
                 z=[ci] * len(members),
                 colorscale=[[0.0, color], [1.0, color]],
                 showscale=False,
@@ -577,9 +594,10 @@ def continuous_map(
     value_name = colorbar_title or "value"
 
     keep = np.flatnonzero(~masked)
+    keep_ids = [ids[j] for j in keep]
     trace_kwargs: dict[str, Any] = {
-        "geojson": fc,
-        "locations": [ids[j] for j in keep],
+        "geojson": _subset_fc(fc, keep_ids),
+        "locations": keep_ids,
         "z": [float(vals[j]) for j in keep],
         "colorscale": MAP_DIVERGING if diverging else MAP_SEQUENTIAL,
         "colorbar": {
@@ -602,11 +620,12 @@ def continuous_map(
     fig = go.Figure(_polygon_trace(tiles, **trace_kwargs))
     if masked.any():
         hidden = np.flatnonzero(masked)
+        hidden_ids = [ids[j] for j in hidden]
         fig.add_trace(
             _polygon_trace(
                 tiles,
-                geojson=fc,
-                locations=[ids[j] for j in hidden],
+                geojson=_subset_fc(fc, hidden_ids),
+                locations=hidden_ids,
                 z=[0] * len(hidden),
                 colorscale=[[0.0, _MASK_GREY], [1.0, _MASK_GREY]],
                 showscale=False,

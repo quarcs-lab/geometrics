@@ -1,0 +1,218 @@
+---
+title: "Spatial spillovers: the spreg suite"
+subtitle: "SAR, SEM, SLX, and the spatial Durbin model — diagnosed, estimated, and read through impacts"
+---
+
+[Spatial dependence and LISA](spatial-dependence.qmd) established that Indian
+district luminosity clusters in space. This article models that dependence: it
+runs the Lagrange-multiplier specification tests, estimates the spatial Durbin
+model of the paper's convergence regression, decomposes the association into
+direct and spillover (indirect) impacts, and checks that the conclusion
+survives alternative weights.
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)
+
+# The paper's weights: 6 nearest neighbors on plain lon/lat centroids (crs=None)
+w = gm.make_weights(gdf, method="knn", k=6, crs=None)
+```
+
+## The specification family
+
+Space can enter a regression through three channels, and the classic
+cross-sectional models are just the on/off combinations. The **spatial lag
+model (SAR)**, $y = \rho W y + X\beta + \varepsilon$, lets the outcome respond
+to neighbors' outcomes — one district's growth feeds its neighbors' growth and
+echoes back, a *global* feedback governed by $\rho$. The **spatial error model
+(SEM)**, $y = X\beta + u$ with $u = \lambda W u + \varepsilon$, puts the
+dependence in the disturbances instead: spatially correlated omitted factors,
+with no substantive spillover in the outcome equation. The **SLX model**,
+$y = X\beta + WX\gamma + \varepsilon$, is the *local* alternative — neighbors'
+characteristics matter directly (each $\gamma$ is itself the spillover), but
+there is no outcome feedback.
+
+The **spatial Durbin model (SDM)** combines the lag and SLX channels,
+$y = \rho W y + X\beta + WX\gamma + \varepsilon$, and is the workhorse of the
+convergence-with-spillovers literature precisely because it nests the others
+and lets the data separate the channels. The built-in explainer:
+
+```{python}
+print(gm.explain("spatial_durbin_model").to_markdown()[:700], "...")
+```
+
+All of these are one `model=` switch away in `analyze_spatial_model`
+(`"ols"`, `"lag"`, `"error"`, `"slx"`, `"durbin"`, `"durbin_error"`), estimated
+by spreg.
+
+## Which model do the data ask for?
+
+`analyze_spatial_diagnostics` estimates the non-spatial OLS benchmark — here
+the paper's unconditional convergence regression, growth of luminosity per
+capita 1996–2010 on its initial level, on the 1996 cross-section — then runs
+Moran's I on the residuals and the five LM tests, and applies the
+Anselin-Florax decision rule:
+
+```{python}
+growth = df.query("year == 1996")
+
+diag = gm.analyze_spatial_diagnostics(
+    growth,
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+    w=w,
+)
+diag.df
+```
+
+```{python}
+print(f"Recommendation: {diag.recommendation}\n")
+print(diag.reasoning)
+```
+
+Residual Moran's I of 0.58 means OLS leaves a lot of spatial structure on the
+table. Both simple LM tests reject overwhelmingly, so the *robust* forms
+decide, and robust LM error wins by a wide margin — the mechanical rule points
+to the **error model**. The paper (and this article) nonetheless proceeds with
+the **spatial Durbin model**: the SDM nests the error model under a
+common-factor restriction and keeps the spatially lagged covariates that
+theory suggests, so it is the safe superset when any robust test fires. The
+diagnostics tell you dependence is real and must be modeled; they do not have
+the last word on which superset to estimate.
+
+## The spatial Durbin model
+
+`analyze_spatial_model` aligns the cross-section to the geometry and weights,
+estimates by maximum likelihood, and computes the LeSage-Pace impact
+decomposition from `betas` + `vm` with Monte-Carlo standard errors
+(`n_draws`; the result records how many were used):
+
+```{python}
+sdm = gm.analyze_spatial_model(
+    growth,
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+    w=w,
+    model="durbin",
+    n_draws=2000,
+)
+sdm.gt
+```
+
+The coefficient table is only the raw material. The spatial autoregressive
+parameter is large — with $\rho \approx 0.8$, every local difference is
+amplified through the neighborhood multiplier $1/(1-\rho) \approx 5$ — and the
+reportable quantities are the impacts:
+
+```{python}
+print(f"rho = {sdm.rho:.3f}   pseudo-R2 = {sdm.r2:.2f}   "
+      f"AIC = {sdm.aic:.0f}   n = {sdm.n_obs}")
+sdm.impacts.round(4)
+```
+
+```{python}
+print(sdm.interpret())
+```
+
+The convergence reading: dimmer districts grow faster (**direct impact
+−0.026**), and the **total impact of −0.022** — the number that maps to the
+speed of convergence — folds in the spillover that arrives through the
+neighborhood. This is the machinery behind
+`analyze_beta_convergence(..., model="sdm")` in the
+[quickstart](../quickstart.qmd).
+
+## SLX for contrast: local spillovers only
+
+Setting `model="slx"` keeps the spatially lagged covariates but switches off
+the outcome feedback ($\rho = 0$). Impacts are then **analytic** — no
+Monte-Carlo draws needed — because direct = $\beta$ and indirect = $\gamma$
+exactly, with no multiplier to simulate:
+
+```{python}
+slx = gm.analyze_spatial_model(
+    growth,
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+    w=w,
+    model="slx",
+)
+slx.impacts.round(4)
+```
+
+The contrast is instructive: without the $\rho W y$ channel, the estimated
+spillover of initial luminosity is small and statistically indistinguishable
+from zero, and the model has no way to represent growth diffusing between
+neighbors. The SDM attributed most of the spatial action to the global
+feedback loop — exactly the channel SLX rules out by construction. AIC
+comparisons across `sdm.aic` and `slx.aic` (same sample, same W) make the same
+point.
+
+## Is the result an artifact of the weights?
+
+Every impact above is conditional on the 6-nearest-neighbor W.
+`analyze_spatial_model_by_weights` re-estimates the same model under
+alternative specifications and compares the focal covariate's
+direct/indirect/total impacts against a baseline — the source paper's
+notebook-c07 robustness check:
+
+```{python}
+alt = {
+    "knn4": gm.make_weights(gdf, method="knn", k=4, crs=None),
+    "knn6": w,
+    "knn8": gm.make_weights(gdf, method="knn", k=8, crs=None),
+    "queen": gm.make_weights(gdf, method="queen"),
+}
+robust = gm.analyze_spatial_model_by_weights(
+    growth,
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+    weights=alt,
+    baseline="knn6",
+    n_draws=1000,
+)
+robust.fig
+```
+
+```{python}
+print(robust.interpret())
+```
+
+The dot-whisker figure is the headline: the total impact keeps its sign in all
+four specifications and every 95% interval covers the baseline — the
+convergence conclusion does not hinge on the weights choice. The per-W detail
+(including each `w_spec` and AIC) lives in `robust.df`, and `robust.gt`
+renders the comparison table.
+
+## Coefficients are not impacts
+
+The closing rule of the spreg suite. In any model with $\rho W y$, a change in
+one district's covariate propagates to its neighbors and feeds back, so no
+single regression coefficient describes the association — reading $\beta$ off
+the SDM coefficient table understates or misstates everything the model has to
+say. The explainer:
+
+```{python}
+print(gm.explain("spatial_impacts").to_markdown()[:800], "...")
+```
+
+Report **direct** (own-district, feedback included), **indirect** (spillover
+to the rest of the map), and **total** impacts — never raw coefficients — and
+say which W they are conditional on. Every geometrics result does the second
+part for you via `w_spec`.
+
+## Where next
+
+- [The India case study](india-case-study.qmd) — the full replication arc these
+  pieces come from
+- [Spatial dependence and LISA](spatial-dependence.qmd) — the exploratory half:
+  weights, Moran's I, and cluster maps

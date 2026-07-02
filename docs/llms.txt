@@ -1,0 +1,39 @@
+# geometrics
+
+> Regional growth, convergence, and inequality analysis on the PySAL stack
+> (libpysal, esda, giddy, inequality, mapclassify, spreg, mgwr) with Plotly
+> figures, Great Tables, and plain-language interpretation on every result.
+
+Three inputs: gdf (geometry with ONLY the entity ID; shapefile / zipped
+shapefile / GeoJSON / GeoPackage via read_gdf), df (long-form panel declared
+with set_panel / set_labels), df_dict (6-column data dictionary: var_name,
+var_def, label, type, role, can_be_na). Every public function returns a frozen
+result dataclass with .df, .fig and/or .gt, .interpret() and .explain().
+
+Install: pip install geometrics  (extras: [dynamics] for Markov via giddy,
+[png] for static export, [all]).
+
+## Docs
+
+- [Quickstart](https://quarcs-lab.github.io/geometrics/quickstart.html): load the India case study and run the core flow
+- [The data model](https://quarcs-lab.github.io/geometrics/articles/data-model.html): the (gdf, df, df_dict) contract
+- [Convergence](https://quarcs-lab.github.io/geometrics/articles/convergence.html): beta/sigma convergence and clubs
+- [Spatial dependence](https://quarcs-lab.github.io/geometrics/articles/spatial-dependence.html): weights, Moran, LISA
+- [Spatial spillovers](https://quarcs-lab.github.io/geometrics/articles/spillovers.html): the spreg suite and impacts
+- [Regional inequality](https://quarcs-lab.github.io/geometrics/articles/inequality.html): Gini/Theil and decompositions
+- [Distribution dynamics](https://quarcs-lab.github.io/geometrics/articles/dynamics.html): Markov and spatial Markov
+- [The India case study](https://quarcs-lab.github.io/geometrics/articles/india-case-study.html): the full replication arc
+- [Changelog](https://quarcs-lab.github.io/geometrics/changelog.html): release notes
+
+## API
+
+- explore_*: explore_choropleth_map, explore_connectivity_map, explore_moran_plot, explore_lisa_cluster_map, explore_moran_over_time, explore_distribution_over_time, explore_spacetime_heatmap
+- analyze_*: analyze_beta_convergence, analyze_sigma_convergence, analyze_convergence_clubs, analyze_spatial_model, analyze_spatial_diagnostics, analyze_spatial_model_by_weights, analyze_markov_transitions, analyze_spatial_markov, analyze_inequality_over_time, analyze_theil_decomposition, analyze_gwr, analyze_mgwr
+- utilities: read_gdf, make_weights, growth_cross_section, set_panel, resolve_panel, set_labels, resolve_label, set_roles, build_data_dict, set_palette, get_palette, explain, list_topics
+- geometrics.data: load_india, load_india_states, load_india_raw, clear_cache
+
+## Source
+
+- [Repository](https://github.com/quarcs-lab/geometrics)
+- [API reference](https://quarcs-lab.github.io/geometrics/reference/index.html)
+- [llms-full.txt](https://quarcs-lab.github.io/geometrics/llms-full.txt): full docs text + signatures

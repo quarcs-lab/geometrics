@@ -69,12 +69,17 @@ def interpret_inequality_over_time(result: Any, *, lang: str = "en") -> str:
         v0, v1 = _first_last(df[measure])
         if not (math.isfinite(v0) and math.isfinite(v1)):
             continue
-        if math.isclose(v0, v1, rel_tol=1e-9, abs_tol=1e-12):
-            move = "was essentially unchanged"
-        elif v1 < v0:
-            move = "fell"
-        else:
-            move = "rose"
+        if math.isclose(v0, v1, rel_tol=1e-9, abs_tol=1e-12) or fmt_num(v0) == fmt_num(
+            v1
+        ):
+            # Also collapse to "unchanged" when rounding would display the same
+            # number twice ("fell from 1.18 to 1.18").
+            lines.append(
+                f"The {name} was essentially unchanged at {fmt_num(v1)} between "
+                "the first and last period."
+            )
+            continue
+        move = "fell" if v1 < v0 else "rose"
         lines.append(
             f"The {name} {move} from {fmt_num(v0)} to {fmt_num(v1)} between the "
             "first and last period."

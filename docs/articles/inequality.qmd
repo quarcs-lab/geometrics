@@ -1,0 +1,205 @@
+---
+title: "Regional inequality"
+subtitle: "Gini and Theil over time, the spatial Gini, and the between/within split"
+---
+
+Convergence asks whether poor regions catch up; **inequality analysis asks how far
+apart regions are right now, and whether that gap is closing**. This article tracks
+regional inequality in the bundled Indian district panel — 520 districts observed by
+DMSP-OLS nighttime lights, 1996–2010 — with the PySAL `inequality` stack: level
+measures over time, the Rey–Smith spatial Gini, and the Theil between/within
+decomposition by state.
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)
+
+# log-based measures need strictly positive values (see below)
+bad = df.loc[df["ntl_total"] <= 0, "statedist"].unique()
+pos = gm.set_labels(
+    df[~df["statedist"].isin(bad)].copy(), df_dict, set_panel=True
+)
+gdf_pos = gdf[~gdf["statedist"].isin(bad)].copy()
+w_pos = gm.make_weights(gdf_pos, method="knn", k=6, crs=None)
+```
+
+## Gini or Theil?
+
+The **Gini index** compares every pair of regions: it is the mean absolute
+difference between two randomly drawn units, scaled by twice the mean, running from
+0 (everyone equal) to (nearly) 1 (one unit holds everything). It is the most widely
+reported inequality measure, robust to how you group the data, and most sensitive to
+transfers around the middle of the distribution — but it does not decompose cleanly
+into parts.
+
+The **Theil index** is an entropy measure: it weighs each region's *share* of the
+total by the log of that share relative to an equal split. It is more sensitive to
+the top of the distribution, and its killer feature is **exact additive
+decomposability** — total inequality splits into a between-group plus a within-group
+component, with nothing left over. That is what makes it the workhorse for regional
+hierarchies like districts within states:
+
+```{python}
+print(gm.explain("theil_decomposition").to_markdown()[:600], "...")
+```
+
+## Strictly positive, or geometrics tells you why not
+
+The Theil index takes logarithms of shares, so it is undefined at zero. One Indian
+district (Lahul and Spiti, up in the Himalayas) records **zero luminosity** in some
+years — and instead of a cryptic numpy warning, geometrics raises a `ValueError`
+that names the offenders:
+
+```{python}
+try:
+    gm.analyze_inequality_over_time(
+        df, "ntl_total", measures=("gini", "theil", "cv")
+    )
+except ValueError as err:
+    print(err)
+```
+
+That is why the first chunk filtered to the always-positive panel (`pos`, 519
+districts) exactly as the [quickstart](../quickstart.qmd) does, and rebuilt the
+geometry and weights to match.
+
+## Three measures, one trend test
+
+`analyze_inequality_over_time` computes each requested measure per period, then
+regresses the **log** of each measure on time (OLS, HC1 standard errors). A
+negative, significant slope means inequality is narrowing — the inequality-narrative
+complement of σ-convergence:
+
+```{python}
+ineq = gm.analyze_inequality_over_time(
+    pos, "ntl_total", measures=("gini", "theil", "cv")
+)
+ineq.df.round(3)
+```
+
+```{python}
+ineq.fig
+```
+
+The trend table makes the verdict explicit:
+
+```{python}
+ineq.gt
+```
+
+```{python}
+print(ineq.interpret())
+```
+
+All three measures agree: district-level luminosity inequality is high (Gini around
+0.54) and essentially flat over 1996–2010 — no narrowing the trend test can
+distinguish from noise.
+
+## The spatial Gini: inequality between neighbors
+
+The Gini is a sum over *pairs* of regions, and every pair is either a **neighbor
+pair** or a **non-neighbor pair** under a spatial weights matrix. Rey & Smith (2013)
+split it exactly along that line. Pass the geometry and weights and
+`analyze_inequality_over_time` adds the decomposition per period:
+
+```{python}
+sg = gm.analyze_inequality_over_time(
+    pos,
+    "ntl_total",
+    measures=("gini", "theil", "cv"),
+    gdf=gdf_pos,
+    w=w_pos,
+)
+sg.df[["time", "n_units", "gini", "gini_spatial", "gini_spatial_p"]].round(4)
+```
+
+`gini_spatial` is the component of the overall Gini owed to differences between
+**neighboring** districts — here well under 1% of a Gini of ~0.54, so almost all
+pairwise inequality lives between districts that are *not* neighbors. Neighbors
+resemble each other; the big gaps are long-distance gaps. `gini_spatial_p` is a
+permutation pseudo p-value (99 permutations by default) testing whether the
+non-neighbor component exceeds what spatial randomness would produce — at p = 0.01
+in every year, the spatial structure of inequality is no accident. The `w_spec`
+field records the weights used:
+
+```{python}
+print(sg.w_spec)
+```
+
+## How much inequality is *between states*?
+
+Districts nest inside states, so the Theil index splits exactly into a
+**between-state** component (inequality across state means) and a **within-state**
+component (inequality among districts inside each state). With `permutations=99`,
+districts are randomly reassigned to states and `p_between` reports how often a
+random partition captures a between share at least as large:
+
+```{python}
+theil = gm.analyze_theil_decomposition(
+    pos, "ntl_total", "state", permutations=99
+)
+theil.df.round(4)
+```
+
+```{python}
+theil.fig
+```
+
+```{python}
+print(theil.interpret())
+```
+
+About 60% of district luminosity inequality is a *between-state* phenomenon, and
+that share drifted down (62% → 59%) over the window — state means pulled slightly
+closer together while within-state gaps held. The permutation p-values (0.01 in
+every period) say the state partition captures far more inequality than chance
+groupings do: in India, geography — which state you are in — is the dominant layer
+of regional inequality.
+
+## A lightweight companion: 32 states, one year
+
+`load_india_states()` ships a small state-level cross-section (32 states and union
+territories, corrected DMSP-OLS lights over gridded population, 1992). With a single
+year there is no trend to test — `analyze_inequality_over_time` needs at least two
+periods — but a one-off snapshot takes three lines:
+
+```{python}
+import pandas as pd
+from inequality.gini import Gini
+from inequality.theil import Theil
+
+gdf_s, df_s, dict_s = gm.data.load_india_states()
+df_s = gm.set_labels(df_s, dict_s, set_panel=True)
+
+y = df_s["ntl_pc"].to_numpy(dtype=float)
+pd.DataFrame(
+    {
+        "measure": ["Gini", "Theil", "CV"],
+        "value": [Gini(y).g, Theil(y).T, y.std(ddof=1) / y.mean()],
+    }
+).round(3)
+```
+
+State-level inequality (Gini 0.39) is well below district-level inequality (0.54) —
+aggregation averages away the within-state gaps, which is precisely the between/
+within story again. The map shows where the bright and dark states are:
+
+```{python}
+gm.explore_choropleth_map(df_s, "log_ntl_pc", gdf=gdf_s, period=1992).fig
+```
+
+## Where next
+
+- [Distribution dynamics](dynamics.qmd) — the same panel through Markov and spatial
+  Markov chains: who moves within the distribution, and does the neighborhood
+  condition mobility?
+- [The India case study](india-case-study.qmd) — the full replication arc, with
+  σ-convergence and this Theil decomposition in context
+- `gm.explain("gini")`, `gm.explain("theil_index")`,
+  `gm.explain("theil_decomposition")` — the concept explainers quoted above

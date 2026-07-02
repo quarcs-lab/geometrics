@@ -44,6 +44,11 @@ website:
     contents:
       - reference/_sidebar.yml
 
+# The docs execute against the project venv via a registered kernelspec (a user-level
+# `python3` kernel can otherwise shadow it). Register with:
+#   uv run python -m ipykernel install --user --name geometrics
+jupyter: geometrics
+
 execute:
   freeze: auto
 

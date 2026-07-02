@@ -1,0 +1,89 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: "1.8.27"
+      - name: Cache case-study data
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/geometrics
+          key: pooch-${{ hashFiles('src/geometrics/data/_registry.py') }}
+      - name: Sync environment
+        run: uv sync --locked --all-extras --group dev --group docs
+      - name: Build API reference
+        run: uv run quartodoc build --config docs/_quarto.yml
+      - name: Register the docs kernel
+        run: uv run python -m ipykernel install --user --name geometrics
+      - name: Render site
+        run: uv run quarto render docs
+      - name: Build llms.txt
+        run: uv run python tools/build_llms_txt.py
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/_site
+
+  notebooks-fresh:
+    name: Generated notebooks are fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: "1.8.27"
+      - name: Sync environment
+        run: uv sync --locked --group docs
+      - name: Regenerate notebooks
+        run: uv run python tools/build_quickstart_notebook.py
+      - name: Fail on drift (ignoring the build stamp)
+        run: git diff --exit-code -I '_Notebook version: built .*' -- notebooks/
+
+  llms-fresh:
+    name: llms.txt is fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Sync environment
+        run: uv sync --locked --all-extras --group docs
+      - name: Regenerate llms.txt
+        run: uv run python tools/build_llms_txt.py --canonical-only
+      - name: Fail on drift
+        run: git diff --exit-code -- docs/llms.txt
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,272 @@
+---
+title: "The India case study"
+subtitle: "Regional growth, convergence, and spatial spillovers — a reproducible view from outer space"
+---
+
+This article replicates and extends the analysis of *"Regional growth, convergence,
+and spatial spillovers in India"*
+([Mendez, Kabiraj & Li](https://github.com/quarcs-lab/project2025s-py); building on
+Chanda & Kabiraj 2020, *World Development*): 520 Indian districts observed by
+radiance-calibrated DMSP-OLS **nighttime lights** between 1996 and 2010, used as a
+satellite proxy for economic activity.
+
+Three questions organize everything:
+
+1. **Convergence** — do dimmer (poorer) districts grow faster than brighter ones?
+2. **Spatial dependence** — do neighboring districts light up together?
+3. **Spillovers** — does a neighborhood's brightness help local growth?
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)
+print(f"{gdf.shape[0]} districts x {df['year'].nunique()} years; "
+      f"{df_dict.shape[0]} documented variables")
+```
+
+## A view from space
+
+Total district luminosity, classified with Fisher-Jenks. The animation steps through
+all six satellite years with a **pooled** classification, so colors are comparable
+across frames:
+
+```{python}
+gm.explore_choropleth_map(df, "ntl_total", gdf=gdf, animate=True).fig
+```
+
+## Spatial dependence
+
+The paper's weights are 6 nearest neighbors (built, like the paper, on plain
+lon/lat centroids — pass `crs=None`; the geometrics default would project first):
+
+```{python}
+w = gm.make_weights(gdf, method="knn", k=6, crs=None)
+
+lisa_initial = gm.explore_lisa_cluster_map(
+    df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996
+)
+lisa_initial.fig
+```
+
+Initial luminosity is strongly clustered — the paper reports Moran's I = 0.73:
+
+```{python}
+print(f"Moran's I (initial log luminosity pc): {lisa_initial.moran_i:.2f} "
+      f"(pseudo p = {lisa_initial.p_sim_global:.3f})")
+print(f"High-High districts: {lisa_initial.n_hh}, "
+      f"Low-Low: {lisa_initial.n_ll}")
+```
+
+And so is growth:
+
+```{python}
+growth_lisa = gm.explore_lisa_cluster_map(
+    df.query("year == 1996"), "growth_ntl_pc_9610", gdf=gdf, w=w
+)
+print(f"Moran's I (growth 1996-2010): {growth_lisa.moran_i:.2f} "
+      f"(pseudo p = {growth_lisa.p_sim_global:.3f})")
+growth_lisa.fig
+```
+
+## Convergence: OLS vs the spatial Durbin model
+
+The paper's dependent variable is the **per-capita** luminosity growth rate
+1996-2010, shipped verbatim by `load_india()` (an honest per-capita *panel* is
+impossible — district population exists only for 1996 and 2001 — so the paper's
+pre-computed columns are carried unchanged). To run the paper's exact cross-section
+through the panel API, rebuild a two-period panel whose growth reproduces the paper's
+dependent variable identically:
+
+```{python}
+import numpy as np
+import pandas as pd
+
+HORIZON = 14  # 1996 -> 2010
+base = df.query("year == 1996")[
+    ["statedist", "state", "district", "ntl_pc_1996", "growth_ntl_pc_9610"]
+]
+paper_panel = pd.concat(
+    [
+        base.assign(year=1996, ntl_pc=base["ntl_pc_1996"]),
+        base.assign(
+            year=2010,
+            ntl_pc=base["ntl_pc_1996"]
+            * np.exp(HORIZON * base["growth_ntl_pc_9610"]),
+        ),
+    ],
+    ignore_index=True,
+)
+paper_panel = gm.set_panel(paper_panel, entity="statedist", time="year")
+```
+
+Unconditional convergence, first ignoring space, then with the SDM (the paper's
+Table 1, Model 1):
+
+```{python}
+ols = gm.analyze_beta_convergence(paper_panel, "ntl_pc", model="ols")
+sdm = gm.analyze_beta_convergence(
+    paper_panel, "ntl_pc", model="sdm", gdf=gdf, w=w, n_draws=5000
+)
+
+summary = pd.DataFrame(
+    {
+        "OLS": [ols.beta_total, np.nan, ols.beta_total, ols.speed, ols.half_life],
+        "SDM": [sdm.beta_direct, sdm.beta_indirect, sdm.beta_total,
+                sdm.speed, sdm.half_life],
+    },
+    index=["direct", "indirect", "total", "speed (per yr)", "half-life (yr)"],
+).round(4)
+summary
+```
+
+The headline finding: **spatial spillovers raise the estimated speed of
+convergence**. Part of every district's catch-up arrives through its neighborhood —
+the indirect impact — which OLS attributes to nothing.
+
+```{python}
+sdm.fig
+```
+
+```{python}
+print(sdm.interpret())
+```
+
+## Which spatial model do the data ask for?
+
+```{python}
+diag = gm.analyze_spatial_diagnostics(
+    df.query("year == 1996"),
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+    w=w,
+)
+print(diag.recommendation)
+print(diag.reasoning)
+diag.gt
+```
+
+## Robustness to the weights choice
+
+The paper re-estimates its preferred SDM under seven alternative weights (notebook
+c07). Here are four:
+
+```{python}
+alt = {
+    "knn4": gm.make_weights(gdf, method="knn", k=4, crs=None),
+    "knn6": w,
+    "knn8": gm.make_weights(gdf, method="knn", k=8, crs=None),
+    "queen": gm.make_weights(gdf, method="queen"),
+}
+robust = gm.analyze_spatial_model_by_weights(
+    df.query("year == 1996"),
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+    weights=alt,
+    baseline="knn6",
+    n_draws=2000,
+)
+robust.fig
+```
+
+## Local convergence: GWR
+
+Is the growth-initial association uniform across India? Geographically weighted
+regression maps the local convergence coefficient:
+
+```{python}
+gwr = gm.analyze_gwr(
+    df.query("year == 1996"),
+    outcome="growth_ntl_pc_9610",
+    covariates=["log_ntl_pc_1996"],
+    gdf=gdf,
+)
+print(f"adaptive bandwidth: {gwr.bw:.0f} neighbors; local R2 mean "
+      f"{gwr.df['local_r2'].mean():.2f}")
+gwr.figs["log_ntl_pc_1996"]
+```
+
+## Distribution dynamics
+
+Beyond the regression slope: how does the whole distribution move? (One district
+records zero luminosity in some years; log-based and relative measures use the
+always-positive panel.)
+
+```{python}
+bad = df.loc[df["ntl_total"] <= 0, "statedist"].unique()
+pos = gm.set_labels(
+    df[~df["statedist"].isin(bad)].copy(), df_dict, set_panel=True
+)
+gdf_pos = gdf[~gdf["statedist"].isin(bad)].copy()
+w_pos = gm.make_weights(gdf_pos, method="knn", k=6, crs=None)
+
+gm.explore_distribution_over_time(pos, "ntl_total", relative=True).fig
+```
+
+Quintile-to-quintile mobility, then conditioned on the neighborhood:
+
+```{python}
+mk = gm.analyze_markov_transitions(pos, "ntl_total", k=5, relative=True)
+print(f"Shorrocks mobility: {mk.shorrocks:.2f} "
+      f"(diagonal persistence {np.diag(mk.p).mean():.2f})")
+mk.fig
+```
+
+```{python}
+smk = gm.analyze_spatial_markov(pos, "ntl_total", gdf=gdf_pos, w=w_pos, k=4)
+print(f"Homogeneity LR test: {smk.lr_stat:.1f} (p = {smk.lr_p:.2g}) — "
+      "transition dynamics differ by neighborhood")
+smk.fig
+```
+
+```{python}
+print(smk.interpret())
+```
+
+## Regional inequality
+
+σ-convergence and the between/within split — how much of district inequality is
+*between states*?
+
+```{python}
+sigma = gm.analyze_sigma_convergence(pos, "ntl_total")
+sigma.fig
+```
+
+```{python}
+theil = gm.analyze_theil_decomposition(pos, "ntl_total", "state")
+theil.fig
+```
+
+```{python}
+print(theil.interpret())
+```
+
+## Convergence clubs
+
+Finally, the Phillips-Sul log(t) machinery asks whether all districts share one
+steady-state path or sort into clubs:
+
+```{python}
+clubs = gm.analyze_convergence_clubs(pos, "ntl_total", gdf=gdf_pos)
+print(f"{clubs.n_clubs} clubs, {clubs.n_divergent} divergent districts "
+      f"(whole-panel log-t = {clubs.global_tstat:.1f})")
+clubs.fig_map
+```
+
+## Sources
+
+- Mendez, C., Kabiraj, S., & Li, J. — *Regional growth, convergence, and spatial
+  spillovers in India: A reproducible view from outer space*
+  ([repository](https://github.com/quarcs-lab/project2025s-py),
+  [interactive manuscript](https://quarcs-lab.github.io/project2025s-py/))
+- Chanda, A., & Kabiraj, S. (2020). Shedding light on regional growth and convergence
+  in India. *World Development*, 133.
+- Data: DMSP-OLS radiance-calibrated nighttime lights (NOAA/NGDC), district
+  boundaries from the 2001 Census geography.

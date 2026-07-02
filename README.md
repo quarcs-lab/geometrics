@@ -6,6 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://pypi.org/project/geometrics/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/quickstart.ipynb)
 
 **geometrics** studies **regional growth, convergence, and inequality** with explicit
 spatial methods. It builds on the excellent [PySAL](https://pysal.org) family —

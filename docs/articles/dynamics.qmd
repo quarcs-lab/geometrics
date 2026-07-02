@@ -1,0 +1,155 @@
+---
+title: "Distribution dynamics: Markov and spatial Markov"
+subtitle: "Following the whole cross-sectional distribution — and asking whether geography conditions mobility"
+---
+
+A convergence regression compresses regional growth into one slope. Quah's critique
+is that the slope can mislead: β-convergence is perfectly compatible with a widening
+or *polarizing* distribution — poor regions can grow faster on average while the
+cross-section splits into "twin peaks" of rich and poor clubs. Distribution dynamics
+therefore follows the **entire cross-sectional distribution** over time — its shape
+period by period, and the movement of individual regions within it, summarized by
+Markov transition matrices:
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)
+
+# relative (mean-normalized) measures use the always-positive panel
+bad = df.loc[df["ntl_total"] <= 0, "statedist"].unique()
+pos = gm.set_labels(
+    df[~df["statedist"].isin(bad)].copy(), df_dict, set_panel=True
+)
+gdf_pos = gdf[~gdf["statedist"].isin(bad)].copy()
+w_pos = gm.make_weights(gdf_pos, method="knn", k=6, crs=None)
+
+print(gm.explain("distribution_dynamics").to_markdown()[:600], "...")
+```
+
+::: {.callout-note}
+The two `analyze_*` functions in this article require the optional **giddy**
+dependency: `pip install "geometrics[dynamics]"` (it is included in
+`geometrics[all]`).
+:::
+
+## The shape of the distribution, period by period
+
+`explore_distribution_over_time` estimates one kernel density per period on a shared
+grid. With `relative=True` each district is divided by the period's cross-sectional
+mean first — the distribution-dynamics convention — so 1.0 marks the period average
+and the plot isolates changes in *shape* from changes in the overall level:
+
+```{python}
+gm.explore_distribution_over_time(pos, "ntl_total", relative=True).fig
+```
+
+The relative distribution is strongly right-skewed and stable: a heavy mass of
+districts below the mean and a long bright tail, with no sign of the mass narrowing
+toward 1. The same densities animate over the slider if you prefer one curve at a
+time:
+
+```{python}
+gm.explore_distribution_over_time(
+    pos, "ntl_total", relative=True, kind="animated"
+).fig
+```
+
+## Every district keeps its row
+
+Densities hide *who* is where. The space-time heatmap pivots the panel to one row
+per district and one column per year, so persistence (rows keeping their shading
+left to right) is visible unit by unit. `sort_by="north_south"` orders rows by
+centroid latitude using the geometry, and `relative=True` compares districts within
+each year rather than tracking the level:
+
+```{python}
+gm.explore_spacetime_heatmap(
+    pos, "ntl_total", gdf=gdf_pos, sort_by="north_south", relative=True
+).fig
+```
+
+Read top to bottom, the bright bands are not scattered — brightness comes in
+latitudinal blocks that persist across all six years, a first hint that both the
+distribution *and* the map are sticky.
+
+## Markov transitions: who moves between quintiles?
+
+`analyze_markov_transitions` discretizes each year's relative luminosity into `k=5`
+quintiles and pools every year-to-year move into a transition-probability matrix —
+row `Q1`, column `Q2` is the probability that a bottom-quintile district climbs one
+class by the next period:
+
+```{python}
+mk = gm.analyze_markov_transitions(pos, "ntl_total", k=5, relative=True)
+mk.fig
+```
+
+The result carries the long-run implications of the matrix — the ergodic
+(steady-state) distribution, the expected sojourn time in each class, and scalar
+mobility indices:
+
+```{python}
+import pandas as pd
+
+long_run = pd.DataFrame(
+    {"steady state": mk.steady_state, "sojourn (periods)": mk.sojourn}
+)
+print(long_run.round(3))
+print(
+    f"\nmobility: Shorrocks {mk.shorrocks:.3f}, Prais {mk.prais:.3f}, "
+    f"Bartholomew {mk.bartholomew:.3f}  ({mk.n_transitions:,} transitions)"
+)
+```
+
+```{python}
+print(mk.interpret())
+```
+
+The diagonal dominates: a district's position in the luminosity distribution is
+highly persistent (average stay probability 0.83, Shorrocks 0.21), and the extremes
+are the stickiest — a district entering the top quintile stays roughly fifteen
+periods. Low mobility is the transition-matrix face of the flat inequality trend in
+the [regional inequality article](inequality.qmd).
+
+## Spatial Markov: does the neighborhood condition mobility?
+
+The classic chain treats every district's move as exchangeable. Rey's **spatial
+Markov** re-estimates the transition matrix *conditional on the spatial lag* — the
+average state of each district's 6 nearest neighbors — giving one matrix per
+neighborhood class, and the Bickenbach–Bode LR / Q tests of whether those
+conditional matrices differ from the pooled one:
+
+```{python}
+smk = gm.analyze_spatial_markov(pos, "ntl_total", gdf=gdf_pos, w=w_pos, k=4)
+smk.fig
+```
+
+```{python}
+smk.gt
+```
+
+```{python}
+print(smk.interpret())
+```
+
+Both homogeneity tests reject decisively (LR = 73.6, Q = 73.5, p < 0.001):
+transition dynamics are **not** the same in every neighborhood. Districts surrounded
+by dim neighbors move around more (and find it harder to hold a high rank), while
+districts embedded in bright neighborhoods stay put — geography conditions mobility,
+the distribution-dynamics counterpart of the spatial spillovers found by the SDM in
+the [India case study](india-case-study.qmd).
+
+## Where next
+
+- [Regional inequality](inequality.qmd) — Gini/Theil levels and the between-state
+  decomposition behind this persistence
+- [The India case study](india-case-study.qmd) — convergence regressions, spillovers,
+  and convergence clubs on the same panel
+- `gm.explain("markov_chains")`, `gm.explain("spatial_markov")`,
+  `gm.explain("mobility_measures")` — the concept explainers

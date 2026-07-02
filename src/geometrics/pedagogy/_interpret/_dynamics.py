@@ -43,7 +43,15 @@ def interpret_markov_transitions(result: Any, *, lang: str = "en") -> str:
     """
     var = str(getattr(result, "var", "the variable"))
     k = int(getattr(result, "k", 0) or np.asarray(result.p).shape[0])
-    scheme = str(getattr(result, "scheme", "quantiles")).replace("_", " ")
+    scheme = {
+        "quantiles": "quantile",
+        "equal_interval": "equal-interval",
+        "fisherjenks": "Fisher-Jenks",
+        "user": "user-defined",
+    }.get(
+        str(getattr(result, "scheme", "quantiles")),
+        str(getattr(result, "scheme", "quantiles")).replace("_", " "),
+    )
     n_transitions = int(getattr(result, "n_transitions", 0))
     states = tuple(str(s) for s in getattr(result, "states", ()))
     diag = _diag(result.p)

@@ -30,5 +30,6 @@ llms:
 
 docs: notebooks
 	uv run quartodoc build --config docs/_quarto.yml
+	uv run python -m ipykernel install --user --name geometrics
 	uv run quarto render docs
 	uv run python tools/build_llms_txt.py

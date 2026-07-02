@@ -1,0 +1,278 @@
+---
+title: "The data model (gdf, df, df_dict)"
+subtitle: "One ID-only geometry, one long panel, one data dictionary — declared once, used everywhere"
+---
+
+Every geometrics analysis takes the same three inputs:
+
+1. **`gdf`** — the entity geometry, carrying **only the entity ID** (plus an optional
+   human-readable name) and the geometry column. Loaded and validated by `read_gdf`.
+2. **`df`** — a **long-form panel**: one row per (entity, period), one column per
+   variable. Its identifiers are declared once with `set_panel` (or in the same call
+   as the labels, below).
+3. **`df_dict`** — a six-column **data dictionary** with one row per `df` column. The
+   dictionary is data too: it supplies the labels on every figure and table, and it
+   can declare the panel IDs and analytical roles in one step.
+
+Geometry is a *join table*, not a data table — the variables live in `df`, and every
+spatial function matches the two on the entity ID. The bundled India case study ships
+all three inputs in exactly this shape:
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geopandas as gpd
+import pandas as pd
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)  # labels + entity/time + roles, once
+
+print(f"gdf:     {gdf.shape[0]} units x {list(gdf.columns)}")
+print(f"df:      {df.shape[0]} rows (520 districts x 6 years), {df.shape[1]} columns")
+print(f"df_dict: {df_dict.shape[0]} rows — one per df column")
+```
+
+Note what the geometry table holds: the ID and the polygons, nothing else.
+
+```{python}
+gdf.head(3)
+```
+
+## `read_gdf`: the geometry entry point
+
+`gm.read_gdf` is the single door for user geometry. It accepts a GeoDataFrame or a
+path in any of four formats — a **shapefile** (`.shp`), a **zipped shapefile**
+(`.zip`), **GeoJSON** (`.geojson` / `.json`), or a **GeoPackage** (`.gpkg`, with
+`layer=` for multi-layer files) — and enforces the geometry contract every spatial
+function relies on: a declared CRS, valid non-empty geometries (invalid ones are
+repaired with a warning), and a **unique** entity ID. Round-trip a toy grid through
+three of them:
+
+```{python}
+import shutil
+import tempfile
+from pathlib import Path
+
+from shapely.geometry import box
+
+cells = [box(x, y, x + 1, y + 1) for y in range(2) for x in range(3)]
+grid = gpd.GeoDataFrame(
+    {"cell_id": [f"c{i}" for i in range(6)]}, geometry=cells, crs="EPSG:4326"
+)
+
+tmp = Path(tempfile.mkdtemp())
+grid.to_file(tmp / "grid.geojson")
+grid.to_file(tmp / "grid.gpkg", layer="grid")
+(tmp / "shp").mkdir()
+grid.to_file(tmp / "shp" / "grid.shp")
+shutil.make_archive(str(tmp / "grid"), "zip", tmp / "shp")  # -> grid.zip
+
+for name in ("grid.geojson", "grid.gpkg", "grid.zip"):
+    back = gm.read_gdf(tmp / name)
+    print(f"{name:13} -> {back.shape[0]} units, CRS EPSG:{back.crs.to_epsg()}, "
+          f"entity = {back.attrs['geometrics_geo']['entity']!r}")
+```
+
+Two things happened silently there. First, the **ID-only rule**: because `cell_id` is
+the sole non-geometry column, it *is* the entity ID — no argument needed. When a file
+carries several columns, `read_gdf` looks for name hints (`id`, `code`, `region`,
+`district`, ...) and asks you to pass `entity=` when the choice is ambiguous; an
+`entity_name=` column (a readable label such as a district name next to a census
+code) can ride along. Everything else belongs in `df` — trim your geometry down to
+the ID (and optional name) before analysis. Second, the resolved IDs were stored on
+`gdf.attrs["geometrics_geo"]`, so every later call can omit `entity=`.
+
+**CRS handling** follows one principle: `read_gdf` *declares*, it never *reprojects*.
+A source with no CRS is an error until you say what the coordinates mean:
+
+```{python}
+naked = gpd.GeoDataFrame({"cell_id": ["a"]}, geometry=[box(0, 0, 1, 1)])  # no CRS
+try:
+    gm.read_gdf(naked)
+except ValueError as err:
+    print(err)
+
+gm.read_gdf(naked, crs="EPSG:4326").crs
+```
+
+Reprojection happens later, on demand: metric operations (k-nearest-neighbor
+centroids, distance bands) project to an estimated UTM CRS automatically — or keep
+raw lon/lat coordinates with `crs=None`, as the India paper does.
+
+## Declare once: `set_panel`, `set_labels`, `set_roles`
+
+Rather than repeat `entity="statedist", time="year"` on every call, geometrics
+stashes structural metadata on `df.attrs` — the **declare-once pattern**. Three
+helpers write it: `set_panel` (entity / time / entity-name IDs), `set_labels`
+(`{column: label}` display names), and `set_roles` (the default `outcome` and
+`covariates`). When the labels come from a `df_dict`, one call does all three:
+
+```{python}
+df = gm.set_labels(df, df_dict, set_panel=True)
+print(df.attrs["geometrics_panel"])
+print(df.attrs["geometrics_roles"]["outcome"],
+      df.attrs["geometrics_roles"]["covariates"][:3], "...")
+```
+
+Two rules make this safe to rely on:
+
+- **Explicit arguments always win.** `gm.explore_choropleth_map(df, "ntl_total",
+  gdf=gdf, entity="statedist")` uses the argument, not the stored default — the attrs
+  are a convenience, never a constraint.
+- **attrs can be dropped by pandas.** Some operations (merges, certain column
+  selections) return a frame without them. The fix is one line — call `set_labels`
+  again:
+
+```{python}
+lookup = pd.DataFrame({"state": df["state"].unique()})
+merged = df.merge(lookup, on="state")
+print("attrs after merge:", merged.attrs)
+
+merged = gm.set_labels(merged, df_dict, set_panel=True)  # recall: declare again
+print("attrs after recall:", merged.attrs["geometrics_panel"])
+```
+
+## The `df_dict` contract
+
+A data dictionary is a plain DataFrame with **six columns, in this order**:
+`var_name`, `var_def` (the long definition), `label` (the short display name),
+`type`, `role`, `can_be_na`. Its vocabulary is fixed:
+
+- `type` ∈ `entity` / `time` / `factor` / `logical` / `numeric`
+- `role` ∈ `""` (blank — no special role) / `outcome` / `covariate` / `entity_name`
+- `can_be_na` ∈ `True` / `False`
+
+Six rows of the India dictionary show the vocabulary at work — the entity ID, a
+factor tagged as the readable entity name, the time ID, a plain numeric column, the
+declared covariate, and the declared outcome (this panel happens to have no
+`logical` column; the inferred dictionary below has one):
+
+```{python}
+df_dict.iloc[[0, 2, 3, 6, 8, 9]]
+```
+
+```{python}
+print("type vocabulary:", sorted(df_dict["type"].unique()))
+print("role vocabulary:", sorted(df_dict["role"].fillna("").unique()))
+```
+
+(Blank roles read back from CSV as missing values — treat blank and `NaN` as the
+same "no role".) The `label` column titles every axis, legend and table header; the
+`type` column lets `set_labels(..., set_panel=True)` find the entity and time IDs;
+the `role` column feeds the default outcome/covariates and the `Name (id)` hover
+labels.
+
+## No dictionary? Infer a starting point
+
+`gm.build_data_dict` produces a best-guess dictionary for any frame, from column
+names and dtypes — entity hints like `iso`/`id`/`region`, time hints like
+`year`/`date`, calendar-year integer detection, and a text column that is ~1:1 with
+the entity becomes the `entity_name`:
+
+```{python}
+import numpy as np
+
+rng = np.random.default_rng(7)
+iso = ["BOL", "COL", "ECU", "PER"]
+names = {"BOL": "Bolivia", "COL": "Colombia", "ECU": "Ecuador", "PER": "Peru"}
+years = list(range(2000, 2011))
+raw = pd.DataFrame(
+    {
+        "iso3": np.repeat(iso, len(years)),
+        "country": np.repeat([names[i] for i in iso], len(years)),
+        "year": years * len(iso),
+        "gdp_pc": rng.uniform(3_000, 12_000, size=len(iso) * len(years)).round(0),
+        "landlocked": np.repeat([True, False, False, False], len(years)),
+    }
+)
+ddict = gm.build_data_dict(raw)
+ddict
+```
+
+The inference is deliberately conservative: it is a *guess* to edit, not a verdict.
+Pass `entity=` / `time=` to pin the IDs when the hints misfire, rewrite the
+humanized labels, and mark the analytical roles yourself — `outcome` and `covariate`
+are **never** guessed. Then declare it the usual way:
+
+```{python}
+raw = gm.set_labels(raw, ddict, set_panel=True)
+print(gm.resolve_panel(raw))
+```
+
+## How `df` meets `gdf`: alignment
+
+You never merge the panel onto the geometry yourself. Every spatial function funnels
+through one alignment path that joins the two on the **entity ID** and returns rows
+in `gdf` order (killing the classic row-order mismatch bug):
+
+1. slice the requested `period` (defaulting to the latest, with a note);
+2. join on the IDs — exact match first, and if there is **zero** overlap, one retry
+   with string-normalized keys (`str.strip` on both sides), reported as a warning;
+3. warn about **unmatched IDs** on either side (naming examples, so typos surface);
+4. drop rows with **missing values** in the analysis columns, with a warning;
+5. when rows dropped and a `w` was given, **restrict the weights** to the kept units
+   (`libpysal`'s `w_subset`) and re-apply the row-standardization, so `w.n` always
+   equals the number of analyzed rows.
+
+Watch all of it on a deliberately messy copy of the panel — one district's 2010
+value blanked out, plus a "Ghost district" that has no polygon:
+
+```{python}
+w = gm.make_weights(gdf, method="knn", k=6, crs=None)
+
+messy = df.copy()
+one = messy["statedist"].iloc[0]
+messy.loc[(messy["statedist"] == one) & (messy["year"] == 2010), "ntl_total"] = np.nan
+ghost = messy[messy["year"] == 2010].iloc[[1]].copy()
+ghost["statedist"] = "Ghost district"
+messy = gm.set_labels(
+    pd.concat([messy, ghost], ignore_index=True), df_dict, set_panel=True
+)
+
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter("always")
+    lisa = gm.explore_lisa_cluster_map(messy, "ntl_total", gdf=gdf, w=w, period=2010)
+
+for c in caught:
+    if c.category.__name__ == "GeometricsWarning":
+        print("warning:", c.message)
+```
+
+Nothing crashed and nothing was silently misaligned: the ghost was named, the
+incomplete district was dropped, and the weights were subset to match. The result
+object keeps the full audit trail in `notes`, and `w_spec` records the weights
+recipe every spatial result carries:
+
+```{python}
+print("rows analyzed:", len(lisa.df))
+print("w_spec:", lisa.w_spec)
+for note in lisa.notes:
+    print("-", note)
+```
+
+## Bring your own data: the checklist
+
+- **Geometry** — load through `gm.read_gdf(...)` (shapefile, zipped shapefile,
+  GeoJSON, or GeoPackage); one row per entity, a **unique** ID, a declared CRS (pass
+  `crs=` when the file carries none), and no other columns beyond the ID and an
+  optional name.
+- **Panel** — reshape to long form: one row per (entity, period). Entity IDs must be
+  written exactly as in the geometry (pure whitespace differences are retried
+  automatically; anything else is warned about, unit by unit).
+- **Dictionary** — author the six columns
+  (`var_name, var_def, label, type, role, can_be_na`) with the vocabulary above, or
+  bootstrap with `gm.build_data_dict(df)` and edit. Mark `outcome` / `covariate`
+  yourself.
+- **Declare once** — `df = gm.set_labels(df, df_dict, set_panel=True)`; re-declare
+  after merges or column subsets, since pandas can drop `attrs`.
+- **Weights** — build from the *same* geometry (`gm.make_weights(gdf, ...)`) and
+  inspect the graph with `gm.explore_connectivity_map(gdf, w=w)` before trusting it.
+
+From here, the [quickstart](../quickstart.qmd) runs the whole workflow in a page,
+[Beta and sigma convergence](convergence.qmd) covers the convergence toolkit, and
+[the India case study](india-case-study.qmd) shows the three inputs carrying a full
+replication.
