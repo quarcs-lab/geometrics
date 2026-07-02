@@ -175,6 +175,8 @@ def learn_spatial_autocorrelation(
         line_dash="dash",
         line_color="rgba(0,0,0,0.5)",
         annotation_text="E[I] under no dependence",
+        # Left end sits above the (low, negative) start of the curve — clear of the data.
+        annotation_position="top left",
         row=1,
         col=2,
     )
@@ -188,6 +190,8 @@ def learn_spatial_autocorrelation(
         title="Spatial autocorrelation, planted and recovered",
         subtitle=w_spec,
         showlegend=False,
+        # Top room so the subtitle clears the two subplot titles.
+        margin_t=104,
     )
 
     summary = {
@@ -294,18 +298,30 @@ def learn_spatial_weights(
             textposition="outside",
         )
     )
+    # The reference line marks the queen (DGP) value; naming it in the subtitle avoids an
+    # on-plot label colliding with the bars' outside "~N neighbors" text.
     fig.add_hline(
         y=float(moran_vals[0]),
         line_dash="dash",
         line_color="rgba(0,0,0,0.5)",
-        annotation_text="queen (the DGP's graph)",
     )
     apply_default_layout(
         fig,
         title="One field, three definitions of 'neighbor'",
-        subtitle=f"field simulated with ρ = {rho:g} under queen contiguity",
+        subtitle=(
+            f"field simulated with ρ = {rho:g} under queen contiguity; "
+            "dashed line = queen (the DGP's graph)"
+        ),
         xaxis={"title": ""},
-        yaxis={"title": "Moran's I"},
+        # Headroom above the tallest bar so the outside labels and the reference-line
+        # note don't collide with the top edge.
+        yaxis={
+            "title": "Moran's I",
+            "range": [
+                min(0.0, float(moran_vals.min()) * 1.1),
+                float(moran_vals.max()) * 1.25,
+            ],
+        },
     )
 
     summary = {
@@ -463,7 +479,9 @@ def learn_lisa_clusters(
             ),
         )
     )
-    for block_slice, label in ((hot, "planted hot"), (cold, "planted cold")):
+    # Outline the two planted blocks; the fill color (via the legend below) already tells
+    # hot (High-High) from cold (Low-Low), so no on-cell text labels are needed.
+    for block_slice in (hot, cold):
         fig.add_shape(
             type="rect",
             x0=block_slice[1].start - 0.5,
@@ -472,19 +490,31 @@ def learn_lisa_clusters(
             y1=block_slice[0].stop - 0.5,
             line={"color": "black", "width": 3},
         )
-        fig.add_annotation(
-            x=(block_slice[1].start + block_slice[1].stop) / 2 - 0.5,
-            y=block_slice[0].start - 0.9,
-            text=label,
-            showarrow=False,
-            font={"size": 12},
+    # A LISA color key: invisible marker traces just to populate the legend (the heatmap
+    # itself has showscale=False), so the five cluster colors are decodable.
+    for label in _LISA_ORDER:
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker={"size": 12, "color": LISA_COLORS[label], "symbol": "square"},
+                name=label,
+                showlegend=True,
+                hoverinfo="skip",
+            )
         )
-    fig.update_yaxes(autorange="reversed", visible=False)
-    fig.update_xaxes(visible=False)
+    # Square cells (the lattice is side x side) instead of a stretched rectangle.
+    fig.update_yaxes(autorange="reversed", visible=False, scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(visible=False, constrain="domain")
     apply_default_layout(
         fig,
         title="Planted clusters, recovered by LISA",
-        subtitle=f"{w_spec}; p < {alpha:g} on {permutations} permutations",
+        subtitle=(
+            f"{w_spec}; p < {alpha:g} on {permutations} permutations; "
+            "planted blocks outlined in black"
+        ),
+        legend_title_text="LISA cluster",
     )
 
     summary = {

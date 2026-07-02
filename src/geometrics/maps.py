@@ -421,6 +421,9 @@ def _animated(
         "transition": {"duration": 0},
     }
     fig.update_layout(
+        # Room below the map for the Play button + slider (placed at negative paper-y);
+        # the map otherwise carries a 10px bottom margin that would clip them.
+        margin_b=64,
         updatemenus=[
             {
                 "type": "buttons",

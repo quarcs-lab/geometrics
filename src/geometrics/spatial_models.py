@@ -1057,7 +1057,16 @@ def _robustness_fig(
             f"{_MODEL_LABELS[model].capitalize()} model | 95% CIs | "
             f"baseline = {baseline} (dashed)"
         ),
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.08},
+        # Legend under the plot: the title is long and the three subplot titles
+        # (Direct/Indirect/Total) occupy the top band, so a top legend would collide.
+        legend={
+            "orientation": "h",
+            "yanchor": "top",
+            "y": -0.16,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        margin_b=90,
     )
     return fig
 

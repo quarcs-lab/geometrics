@@ -89,6 +89,17 @@ def test_lisa_recovers_planted_blocks():
     assert s["false_positive_rate"] <= 3 * s["alpha"]
 
 
+def test_lisa_figure_has_a_color_legend_and_square_cells():
+    fig = _fast("learn_lisa_clusters").fig
+    # A legend swatch per LISA category so the cluster colors are decodable.
+    legend_names = {t.name for t in fig.data if t.name}
+    assert {"High-High", "Low-Low", "Low-High", "High-Low", "Not significant"} <= (
+        legend_names
+    )
+    # Square cells: the y-axis is scale-anchored to x.
+    assert fig.layout.yaxis.scaleanchor == "x"
+
+
 def test_spillovers_recover_planted_impacts():
     res = gm.learn_spatial_spillovers()
     s = res.summary

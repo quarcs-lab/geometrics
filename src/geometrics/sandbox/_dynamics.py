@@ -318,6 +318,8 @@ def learn_spatial_markov(
         line_dash="dash",
         line_color="rgba(0,0,0,0.5)",
         annotation_text="pooled (ignoring neighbors)",
+        # Left end clears the tall right-hand bar that otherwise sits under the label.
+        annotation_position="top left",
     )
     apply_default_layout(
         fig,

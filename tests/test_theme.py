@@ -16,8 +16,10 @@ from geometrics._theme import (
     PLOTLY_CONFIG,
     SEQUENTIAL_SCALE,
     TEMPLATE_NAME,
+    annotation_corner,
     apply_default_layout,
     color_for,
+    compact_number,
     diverging_color,
 )
 
@@ -111,3 +113,31 @@ def test_map_color_constants():
     assert CLUB_COLORS == COLOR_SEQUENCE
     assert MAP_SEQUENTIAL == SEQUENTIAL_SCALE
     assert MAP_DIVERGING == DIVERGING_SCALE
+
+
+def test_compact_number_uses_si_suffixes_not_scientific():
+    # SI suffixes for large magnitudes; no scientific notation like "2.654e+04".
+    assert compact_number(26540) == "26.5k"
+    assert compact_number(151700) == "151.7k"
+    assert compact_number(1_200_000) == "1.2M"
+    assert compact_number(-1800) == "-1.8k"
+    # sub-thousand magnitudes stay as trimmed fixed-point
+    assert compact_number(78.01) == "78.01"
+    assert compact_number(0) == "0"
+    assert "e" not in compact_number(2.654e4).lower()
+
+
+def test_annotation_corner_avoids_the_data_mass():
+    # Points clustered in the bottom-left -> box goes to an empty (top) corner.
+    x = [0.0, 0.1, 0.2, 0.05, 0.15]
+    y = [0.0, 0.1, 0.2, 0.05, 0.15]
+    corner = annotation_corner(x, y)
+    assert corner["yanchor"] == "top"  # data is low, so the box sits high
+    assert set(corner) == {"x", "y", "xanchor", "yanchor"}
+    # Empty input falls back to the top-left default.
+    assert annotation_corner([], []) == {
+        "x": 0.02,
+        "y": 0.98,
+        "xanchor": "left",
+        "yanchor": "top",
+    }

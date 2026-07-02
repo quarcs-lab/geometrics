@@ -798,6 +798,10 @@ def analyze_spatial_markov(
         if title is not None
         else f"Spatial Markov transitions — {var_label}",
         subtitle=w_spec,
+        # Real per-row height so multi-row grids stay square, plus top room so the
+        # subtitle clears the first row of subplot titles ("Neighbors in Q1", …).
+        height=300 * n_rows + 120,
+        margin_t=110,
         coloraxis={
             "colorscale": active_sequential_scale(),
             "cmin": 0.0,

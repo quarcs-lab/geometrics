@@ -52,7 +52,12 @@ from geometrics._impacts import (
 from geometrics._labels import resolve_label
 from geometrics._mapping import classified_map
 from geometrics._panel import resolve_entity_name, resolve_panel, set_panel
-from geometrics._theme import apply_default_layout, color_for
+from geometrics._theme import (
+    ANNOTATION_BG,
+    annotation_corner,
+    apply_default_layout,
+    color_for,
+)
 from geometrics._types import BetaConvergenceResult, SigmaConvergenceResult
 from geometrics._validation import (
     GeometricsWarning,
@@ -429,6 +434,7 @@ def _scatter_fig(
     xs, ys, ents = xv[order], yv[order], entities[order]
 
     fig = go.Figure()
+    fit: np.ndarray | None = None
     if xs.size >= 3 and np.ptp(xs) > 0:
         design = sm.add_constant(xs, has_constant="add")
         pred = sm.OLS(ys, design).fit().get_prediction(design)
@@ -474,19 +480,21 @@ def _scatter_fig(
             showlegend=False,
         )
     )
+    # Place the stat box in the emptiest corner, avoiding both the point cloud and the
+    # (downward-sloping) fit line, instead of pinning it top-left over the line's origin.
+    corner_x = xs if fit is None else np.concatenate([xs, xs])
+    corner_y = ys if fit is None else np.concatenate([ys, fit])
+    corner = annotation_corner(corner_x, corner_y)
     fig.add_annotation(
         xref="paper",
         yref="paper",
-        x=0.02,
-        y=0.98,
-        xanchor="left",
-        yanchor="top",
         showarrow=False,
         align="left",
         bordercolor="rgba(0,0,0,0.2)",
         borderwidth=1,
-        bgcolor="rgba(255,255,255,0.7)",
+        bgcolor=ANNOTATION_BG,
         text="<br>".join(stat_lines),
+        **corner,
     )
     apply_default_layout(
         fig,
@@ -941,7 +949,9 @@ def analyze_beta_convergence(
         y,
         ents,
         f"Initial log {var_label}",
-        f"Growth of {var_label} (annualized log growth)",
+        # Concise (rotated) y title — the variable is already named in the plot title and
+        # on the x-axis, and a long rotated title overflows the plot height.
+        "Annualized growth",
         _stat_lines(beta_total, se_total, r2, n_obs, speed, hl),
         title if title is not None else f"β-convergence: {var_label}",
         subtitle,
@@ -957,7 +967,7 @@ def analyze_beta_convergence(
             y_res,
             ents,
             f"Residualized initial log {var_label}",
-            f"Residualized growth of {var_label}",
+            "Residualized growth",
             _stat_lines(beta_o, se_o, r2_o, n_o, speed_o, hl_o),
             f"Conditional β-convergence (FWL): {var_label}",
             "controls and fixed effects partialled out (OLS baseline)",
@@ -1210,24 +1220,31 @@ def _sigma_fig(
             secondary_y=sec,
         )
 
+    corner = annotation_corner(tv, tab["std"].to_numpy(dtype=float))
     fig.add_annotation(
         xref="paper",
         yref="paper",
-        x=0.02,
-        y=0.98,
-        xanchor="left",
-        yanchor="top",
         showarrow=False,
         align="left",
         bordercolor="rgba(0,0,0,0.2)",
         borderwidth=1,
-        bgcolor="rgba(255,255,255,0.7)",
+        bgcolor=ANNOTATION_BG,
         text="<br>".join(_sigma_annotation(trends, len(tab))),
+        **corner,
     )
     apply_default_layout(
         fig,
         title=title,
         xaxis={"title": time_label},
+        # Horizontal legend under the plot so it clears the right (secondary) axis title.
+        legend={
+            "orientation": "h",
+            "yanchor": "top",
+            "y": -0.18,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        margin_b=104,
     )
     fig.update_yaxes(
         title_text=f"Std. dev. of log {var_label}", color=std_color, secondary_y=False

@@ -575,7 +575,11 @@ def _clubs_facets_fig(
             col=col,
         )
     apply_default_layout(
-        fig, title=f"Convergence clubs ({var_label}): member paths by club"
+        fig,
+        title=f"Convergence clubs ({var_label}): member paths by club",
+        # Give each panel row real height so multi-row facet grids aren't squashed
+        # into the default 450px.
+        height=300 * nrows + 80,
     )
     fig.update_xaxes(title_text=time_label, row=nrows)
     return fig

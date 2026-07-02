@@ -105,8 +105,11 @@ def learn_beta_convergence(
     true_half_life = math.log(2.0) / true_speed
 
     fig = res.fig
-    x0 = float(res.df["initial"].min())
-    x1 = float(res.df["initial"].max())
+    # The scatter's x-axis is the *log* initial level (``res.df["initial"]`` is the raw
+    # level), so the planted-truth line must use log x too — otherwise it spans the raw
+    # 0..40k range and collapses the real scatter into the corner.
+    x0 = math.log(float(res.df["initial"].min()))
+    x1 = math.log(float(res.df["initial"].max()))
     fig.add_trace(
         go.Scatter(
             x=[x0, x1],

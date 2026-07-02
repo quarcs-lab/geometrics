@@ -354,8 +354,10 @@ def test_moran_over_time_figure_encodes_significance(over_time_res):
     ]
     assert list(trace.marker.symbol) == expected
     assert trace.hovertemplate.endswith("<extra></extra>")
-    # The E[I] reference line and the marker-key annotation.
-    assert len(fig.layout.shapes) == 1
+    # E[I] is drawn as an hline (a shape) only when it falls inside the data-focused
+    # y-range; otherwise it is reported as an annotation. Either way E[I] and the
+    # significance key are stated in the annotations.
+    assert len(fig.layout.shapes) <= 1
     texts = " ".join(a.text for a in fig.layout.annotations)
     assert "E[I]" in texts
     assert "p (perm)" in texts

@@ -38,6 +38,7 @@ from geometrics._theme import (
     MAP_SEQUENTIAL,
     apply_default_layout,
     color_for,
+    compact_number,
 )
 from geometrics._validation import ensure_geodataframe
 
@@ -221,7 +222,10 @@ def _display_names(
 def _class_labels(bins: Sequence[float], vmin: float) -> list[str]:
     """Build ``'lo - hi'`` interval labels for classes with upper bounds ``bins``."""
     edges = [float(vmin), *(float(b) for b in bins)]
-    return [f"{edges[i]:.4g} - {edges[i + 1]:.4g}" for i in range(len(bins))]
+    return [
+        f"{compact_number(edges[i])} - {compact_number(edges[i + 1])}"
+        for i in range(len(bins))
+    ]
 
 
 def _class_colors(k: int) -> list[str]:
@@ -601,7 +605,9 @@ def continuous_map(
         "z": [float(vals[j]) for j in keep],
         "colorscale": MAP_DIVERGING if diverging else MAP_SEQUENTIAL,
         "colorbar": {
-            "title": {"text": colorbar_title or ""},
+            # Long coefficient titles (e.g. "… (millions) (local)") read cleanly rotated
+            # beside the bar instead of overflowing the right edge as a wide top label.
+            "title": {"text": colorbar_title or "", "side": "right"},
             "thickness": 14,
             "len": 0.85,
             "outlinewidth": 0,

@@ -57,6 +57,42 @@ _RIDGE_STEP = 0.6
 
 _SORTS = ("value", "name", "north_south", "east_west")
 
+#: Max length for heatmap y-axis tick labels before eliding (full name stays in hover),
+#: so a few long entity ids don't blow out the left margin.
+_MAX_TICK_LABEL = 26
+
+
+def _truncate_label(text: str, limit: int = _MAX_TICK_LABEL) -> str:
+    """Shorten ``text`` to ``limit`` chars with an ellipsis (used for axis tick labels)."""
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def _content_xrange(
+    grid: np.ndarray,
+    dens: dict[Any, np.ndarray],
+    *,
+    frac: float = 0.01,
+    margin: float = 0.03,
+) -> list[float]:
+    """Trim the density grid to where mass actually lives (drop the long near-zero tails).
+
+    Returns ``[lo, hi]`` spanning the grid points where any period's density exceeds
+    ``frac`` of the global peak, plus a small ``margin``. Keeps a lone high outlier from
+    stretching the x-axis so far that the bulk of the distribution collapses to the left.
+    """
+    peak = max(float(d.max()) for d in dens.values())
+    thresh = frac * peak
+    mask = np.zeros(grid.size, dtype=bool)
+    for d in dens.values():
+        mask |= np.asarray(d) >= thresh
+    if not mask.any():
+        return [float(grid[0]), float(grid[-1])]
+    idx = np.flatnonzero(mask)
+    pad = int(margin * grid.size)
+    lo = max(int(idx[0]) - pad, 0)
+    hi = min(int(idx[-1]) + pad, grid.size - 1)
+    return [float(grid[lo]), float(grid[hi])]
+
 
 def _rgba(hex_color: str, alpha: float) -> str:
     """Convert a ``#rrggbb`` hex string to an ``rgba(...)`` string with ``alpha``."""
@@ -308,7 +344,7 @@ def _ridgeline_figure(
             )
         )
     fig.update_layout(
-        xaxis={"title": {"text": x_label}},
+        xaxis={"title": {"text": x_label}, "range": _content_xrange(grid, dens)},
         yaxis={
             "title": {"text": time_label},
             "tickmode": "array",
@@ -366,7 +402,9 @@ def _animated_figure(
         "transition": {"duration": 0},
     }
     fig.update_layout(
-        xaxis={"title": {"text": x_label}, "range": [float(grid[0]), float(grid[-1])]},
+        # Bottom margin so the Play button + slider (placed just below the axis) have room.
+        margin={"b": 120},
+        xaxis={"title": {"text": x_label}, "range": _content_xrange(grid, dens)},
         yaxis={"title": {"text": "Density"}, "range": [0.0, 1.08 * peak]},
         updatemenus=[
             {
@@ -572,16 +610,33 @@ def explore_spacetime_heatmap(
         if relative:
             title += " (relative to the period mean)"
 
-    y_labels = [display.get(str(i), str(i)) for i in wide.index]
+    full_labels = [display.get(str(i), str(i)) for i in wide.index]
     x_labels = [str(p) for p in periods]
+    # Elide long entity ids for the axis (so a few very long names don't blow out the
+    # left margin and detach the left-anchored title) but keep the full name in hover.
+    # Where truncation would collide, keep the full label so heatmap rows never merge —
+    # Plotly still auto-thins which labels are drawn.
+    trunc = [_truncate_label(lbl) for lbl in full_labels]
+    y_labels = [
+        full if trunc.count(t) > 1 else t
+        for full, t in zip(full_labels, trunc, strict=True)
+    ]
     customdata = np.tile(
-        np.asarray(y_labels, dtype=object)[:, None], (1, len(x_labels))
+        np.asarray(full_labels, dtype=object)[:, None], (1, len(x_labels))
     )
+    z = wide.to_numpy(dtype=float)
+    # Robust color range: clip to the 2nd/98th percentiles so a handful of outliers
+    # don't compress every other cell to near-white.
+    finite = z[np.isfinite(z)]
+    zmin = float(np.percentile(finite, 2)) if finite.size else None
+    zmax = float(np.percentile(finite, 98)) if finite.size else None
     fig = go.Figure(
         go.Heatmap(
-            z=wide.to_numpy(dtype=float),
+            z=z,
             x=x_labels,
             y=y_labels,
+            zmin=zmin,
+            zmax=zmax,
             colorscale=MAP_SEQUENTIAL,
             colorbar={"title": {"text": z_label}},
             customdata=customdata,

@@ -318,6 +318,15 @@ def _inequality_fig(
         else f"Regional inequality over time: {var_label}",
         subtitle=w_spec,
         xaxis={"title": time_label},
+        # Horizontal legend under the plot so it clears the right (secondary) axis title.
+        legend={
+            "orientation": "h",
+            "yanchor": "top",
+            "y": -0.18,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        margin_b=104,
     )
     return fig
 
@@ -760,6 +769,15 @@ def _theil_fig(
         if title is not None
         else f"Theil decomposition of {var_label} by {group_label}",
         xaxis={"title": time_label},
+        # Horizontal legend under the plot so it clears the right (secondary) axis title.
+        legend={
+            "orientation": "h",
+            "yanchor": "top",
+            "y": -0.18,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        margin_b=104,
     )
     return fig
 

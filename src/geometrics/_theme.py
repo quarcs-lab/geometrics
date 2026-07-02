@@ -14,6 +14,9 @@ consistent across notebooks, scripts, static exports and the apps:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 
@@ -36,8 +39,10 @@ __all__ = [
     "active_colorway",
     "active_diverging_scale",
     "active_sequential_scale",
+    "annotation_corner",
     "apply_default_layout",
     "color_for",
+    "compact_number",
     "diverging_color",
     "get_palette",
     "set_palette",
@@ -46,6 +51,15 @@ __all__ = [
     "MAP_SEQUENTIAL",
     "MAP_DIVERGING",
 ]
+
+# A stat-box / caption sitting on top of the data is the single most common figure defect;
+# this floor keeps in-plot annotation boxes readable while still letting the data show
+# through faintly.
+ANNOTATION_BG = "rgba(255,255,255,0.72)"
+# Top margin (px) reserved for a two-line title + subtitle so descenders (e.g. the "β" in a
+# convergence title) are not clipped and, in subplot figures, the subtitle clears the
+# per-panel titles. See :func:`apply_default_layout`.
+_SUBTITLE_TOP_MARGIN = 92
 
 # --- Qualitative palette -------------------------------------------------------------
 # The classic Tableau 10 palette: distinct, muted, and well-suited to projection on
@@ -205,7 +219,7 @@ def _build_template(*, dark: bool = False) -> go.layout.Template:
             "sequential": active_sequential_scale(),
             "diverging": active_diverging_scale(),
         },
-        margin={"l": 70, "r": 30, "t": 60, "b": 60},
+        margin={"l": 70, "r": 30, "t": 72, "b": 60},
         legend={
             "bgcolor": legend_bg,
             "borderwidth": 0,
@@ -353,9 +367,91 @@ def apply_default_layout(
     fig.update_layout(template=_COMBINED_TEMPLATE_DARK if dark else _COMBINED_TEMPLATE)
     if title is not None or subtitle is not None:
         fig.update_layout(title=_make_title(title, subtitle))
+    # A subtitle renders as a second title line inside the top margin; reserve room for it
+    # so the title's descenders aren't clipped (and, in subplot figures, so it clears the
+    # per-panel titles). An explicit margin in ``layout_kwargs`` always wins — applied last.
+    if subtitle is not None and not _has_margin_override(layout_kwargs):
+        fig.update_layout(margin_t=_SUBTITLE_TOP_MARGIN)
     if layout_kwargs:
         fig.update_layout(**layout_kwargs)
     return fig
+
+
+def _has_margin_override(layout_kwargs: dict[str, object]) -> bool:
+    """Return ``True`` if ``layout_kwargs`` sets the top margin (``margin`` dict or ``margin_t``)."""
+    if "margin_t" in layout_kwargs:
+        return True
+    margin = layout_kwargs.get("margin")
+    return isinstance(margin, dict) and "t" in margin
+
+
+def compact_number(value: float) -> str:
+    """Format ``value`` compactly for axis/legend labels — no scientific notation.
+
+    Large magnitudes use SI-style suffixes (``27k``, ``152k``, ``1.2M``, ``3.4B``); small
+    magnitudes fall back to a trimmed fixed-point (``0.44``, ``-1.8``). Used for classified
+    choropleth bin labels so ranges read as ``"27k - 69k"`` rather than ``"2.654e+04"``.
+    """
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return "—"
+    v = float(value)
+    sign = "-" if v < 0 else ""
+    a = abs(v)
+    for cutoff, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "k")):
+        if a >= cutoff:
+            scaled = a / cutoff
+            text = f"{scaled:.1f}".rstrip("0").rstrip(".")
+            return f"{sign}{text}{suffix}"
+    if a == 0:
+        return "0"
+    if a >= 100:
+        return f"{sign}{a:.0f}"
+    if a >= 1:
+        return f"{sign}{a:.2f}".rstrip("0").rstrip(".")
+    # sub-unit: keep enough significant digits to distinguish bin edges
+    return f"{sign}{a:.3g}"
+
+
+def annotation_corner(x: Iterable[float], y: Iterable[float]) -> dict[str, float | str]:
+    """Pick the emptiest paper corner for an in-plot annotation box, given the plotted data.
+
+    Returns a dict with ``x``/``y`` (paper coordinates) and matching ``xanchor``/``yanchor``
+    so a stat box lands where the fewest data points are, instead of pinned to the top-left
+    on top of the line. Falls back to the top-left corner when there is no finite data.
+    """
+    xa = np.asarray(list(x), dtype=float)
+    ya = np.asarray(list(y), dtype=float)
+    mask = np.isfinite(xa) & np.isfinite(ya)
+    xa, ya = xa[mask], ya[mask]
+    default: dict[str, float | str] = {
+        "x": 0.02,
+        "y": 0.98,
+        "xanchor": "left",
+        "yanchor": "top",
+    }
+    if xa.size == 0:
+        return default
+    xr = float(xa.max() - xa.min()) or 1.0
+    yr = float(ya.max() - ya.min()) or 1.0
+    nx = (xa - xa.min()) / xr
+    ny = (ya - ya.min()) / yr
+    regions = {
+        ("left", "top"): (nx < 0.35) & (ny > 0.65),
+        ("right", "top"): (nx > 0.65) & (ny > 0.65),
+        ("left", "bottom"): (nx < 0.35) & (ny < 0.35),
+        ("right", "bottom"): (nx > 0.65) & (ny < 0.35),
+    }
+    # Prefer top corners on ties (labels read more naturally near the top).
+    order = [("left", "top"), ("right", "top"), ("right", "bottom"), ("left", "bottom")]
+    best = min(order, key=lambda k: int(regions[k].sum()))
+    xanchor, yanchor = best
+    placed: dict[str, float | str] = {
+        "x": 0.02 if xanchor == "left" else 0.98,
+        "y": 0.98 if yanchor == "top" else 0.02,
+        "xanchor": xanchor,
+        "yanchor": yanchor,
+    }
+    return placed
 
 
 def color_for(index: int) -> str:

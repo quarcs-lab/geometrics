@@ -32,7 +32,13 @@ from geometrics._geo import _align_cross_section, _first_ids, resolve_gdf_entity
 from geometrics._labels import resolve_label
 from geometrics._mapping import categorical_map
 from geometrics._panel import resolve_entity_name, resolve_panel
-from geometrics._theme import LISA_COLORS, apply_default_layout, color_for
+from geometrics._theme import (
+    ANNOTATION_BG,
+    LISA_COLORS,
+    annotation_corner,
+    apply_default_layout,
+    color_for,
+)
 from geometrics._types import (
     LisaClusterMapResult,
     MoranOverTimeResult,
@@ -206,13 +212,13 @@ def _moran_scatter(
     )
     fig.add_hline(y=0.0, line=dict(_REFLINE))
     fig.add_vline(x=0.0, line=dict(_REFLINE))
+    # Include the fit-line endpoints so the stat box avoids the regression line too, not
+    # just the point cloud (otherwise it lands where the line runs to a corner).
+    fit_ys = intercept + slope * xs
+    corner = annotation_corner(np.concatenate([z, xs]), np.concatenate([lag, fit_ys]))
     fig.add_annotation(
         xref="paper",
         yref="paper",
-        x=0.02,
-        y=0.98,
-        xanchor="left",
-        yanchor="top",
         align="left",
         showarrow=False,
         text=(
@@ -220,9 +226,10 @@ def _moran_scatter(
             f"E[I] = {expected_i:.3f}<br>"
             f"p (perm) = {p_sim:.3f}"
         ),
-        bgcolor="rgba(255,255,255,0.85)",
+        bgcolor=ANNOTATION_BG,
         bordercolor="rgba(0,0,0,0.2)",
         borderwidth=1,
+        **corner,
     )
     apply_default_layout(
         fig,
@@ -886,24 +893,49 @@ def explore_moran_over_time(
         )
     )
     expected_i = -1.0 / (len(kept) - 1)
-    fig.add_hline(
-        y=expected_i,
-        line=dict(_REFLINE),
-        annotation_text=f"E[I] = {expected_i:.3f}",
-        annotation_position="bottom right",
-    )
+    # Focus the y-axis on the observed I values: the null E[I] is ~0, so letting it drive
+    # the range would crush the trend into the top sliver. Pad by ~15% of the spread and
+    # only draw the E[I] reference line when it actually falls inside that window;
+    # otherwise report it in the subtitle so the null is still stated.
+    mi = tidy["moran_i"].to_numpy(dtype=float)
+    lo, hi = float(np.min(mi)), float(np.max(mi))
+    pad = max((hi - lo) * 0.15, 0.03)
+    y0, y1 = lo - pad, hi + pad
+    # Drop the significance caption into whichever corner is emptiest given the trend.
+    caption = annotation_corner(np.arange(len(mi), dtype=float), mi)
     fig.add_annotation(
         xref="paper",
         yref="paper",
-        x=0.98,
-        y=0.02,
-        xanchor="right",
-        yanchor="bottom",
         showarrow=False,
         text="filled markers: p (perm) < 0.05",
         font={"size": 12},
-        bgcolor="rgba(255,255,255,0.7)",
+        bgcolor=ANNOTATION_BG,
+        **caption,
     )
+    if y0 <= expected_i <= y1:
+        fig.add_hline(
+            y=expected_i,
+            line=dict(_REFLINE),
+            annotation_text=f"E[I] = {expected_i:.3f}",
+            annotation_position="bottom left",
+        )
+    else:
+        # E[I] sits below the data-focused range; note it in the corner diagonally
+        # opposite the caption so the two never collide.
+        ex = 0.02 if caption["xanchor"] == "right" else 0.98
+        ey = 0.02 if caption["yanchor"] == "top" else 0.98
+        fig.add_annotation(
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            text=f"E[I] = {expected_i:.3f} (no dependence)",
+            font={"size": 12},
+            bgcolor=ANNOTATION_BG,
+            x=ex,
+            y=ey,
+            xanchor="left" if ex < 0.5 else "right",
+            yanchor="top" if ey > 0.5 else "bottom",
+        )
     apply_default_layout(
         fig,
         title=title,
@@ -914,7 +946,7 @@ def explore_moran_over_time(
             "categoryorder": "array",
             "categoryarray": period_labels,
         },
-        yaxis={"title": "Moran's I"},
+        yaxis={"title": "Moran's I", "range": [y0, y1]},
     )
     return MoranOverTimeResult(
         df=tidy,
