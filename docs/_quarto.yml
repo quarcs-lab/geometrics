@@ -70,9 +70,11 @@ format:
     code-copy: true
     code-overflow: wrap
     include-in-header:
+      # Fully-qualified URLs: Quarto rewrites root-relative hrefs ("/geometrics/...")
+      # into document-relative ones, which doubled the path and 404'd.
       text: |
-        <link rel="alternate" type="text/markdown" href="/geometrics/llms.txt" title="llms.txt for LLMs">
-        <link rel="alternate" type="text/plain" href="/geometrics/llms-full.txt" title="llms-full.txt for LLMs">
+        <link rel="alternate" type="text/markdown" href="https://quarcs-lab.github.io/geometrics/llms.txt" title="llms.txt for LLMs">
+        <link rel="alternate" type="text/plain" href="https://quarcs-lab.github.io/geometrics/llms-full.txt" title="llms-full.txt for LLMs">
 
 metadata-files:
   - reference/_sidebar.yml
