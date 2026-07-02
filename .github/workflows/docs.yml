@@ -56,7 +56,8 @@ jobs:
       - name: Regenerate notebooks
         run: uv run python tools/build_quickstart_notebook.py
       - name: Fail on drift (ignoring the build stamp)
-        run: git diff --exit-code -I '_Notebook version: built .*' -- notebooks/
+        run: |
+          git diff --exit-code -I '_Notebook version: built .*' -- notebooks/
 
   llms-fresh:
     name: llms.txt is fresh
