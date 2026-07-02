@@ -6,6 +6,7 @@ title: "Analyze convergence and inequality"
 <div class="try-banner">
   <p class="try-banner__title">✨ <strong>Try this page interactively</strong> — no install needed.</p>
   <div class="try-banner__actions">
+    <a class="xpd-btn xpd-btn--app" href="https://geometrics-analyze.streamlit.app/" target="_blank" rel="noopener">🚀 Launch the Analyze app</a>
     <a class="xpd-btn xpd-btn--colab" href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
   </div>
 </div>

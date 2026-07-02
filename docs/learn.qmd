@@ -6,6 +6,7 @@ title: "Learn spatial analysis"
 <div class="try-banner">
   <p class="try-banner__title">✨ <strong>Try this page interactively</strong> — no install needed.</p>
   <div class="try-banner__actions">
+    <a class="xpd-btn xpd-btn--app" href="https://geometrics-learn.streamlit.app/" target="_blank" rel="noopener">🚀 Launch the Learn app</a>
     <a class="xpd-btn xpd-btn--colab" href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
   </div>
 </div>
@@ -153,7 +154,13 @@ page with every knob documented:
 ## Prefer sliders?
 
 The Learn app wraps every sandbox knob in a slider and pairs it with the explainer
-browser — no install needed. *(Launching soon — the button will appear here.)*
+browser — no install needed:
+
+```{=html}
+<div class="app-row">
+  <a class="xpd-btn xpd-btn--app" href="https://geometrics-learn.streamlit.app/" target="_blank" rel="noopener">📚 Launch the Learn app</a>
+</div>
+```
 
 ## Where next
 

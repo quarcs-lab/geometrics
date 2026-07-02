@@ -11,6 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://geometrics-explore.streamlit.app/)
 
 **geometrics** studies **regional growth, convergence, and inequality** with explicit
 spatial methods. It builds on the excellent [PySAL](https://pysal.org) family —
@@ -26,11 +27,11 @@ It follows the design language of [expdpy](https://github.com/cmg777/expdpy) and
 presented in **three modules**, each with its own pedagogical walkthrough and Colab
 notebook:
 
-| Module | What it does | Docs | Colab |
-|---|---|---|---|
-| 🗺️ **Explore** | Choropleths, weights, Moran/LISA, space-time views | [Explore](https://quarcs-lab.github.io/geometrics/explore.html) | [explore.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb) |
-| 🧮 **Analyze** | β/σ/club convergence, spatial models with impacts, Markov, inequality, GWR | [Analyze](https://quarcs-lab.github.io/geometrics/analyze.html) | [analyze.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/analyze.ipynb) |
-| 📚 **Learn** | 11 `learn_*` concept sandboxes + a 30-topic explainer index; `.interpret()` / `.explain()` on every result | [Learn](https://quarcs-lab.github.io/geometrics/learn.html) | [learn.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/learn.ipynb) |
+| Module | What it does | Docs | App | Colab |
+|---|---|---|---|---|
+| 🗺️ **Explore** | Choropleths, weights, Moran/LISA, space-time views | [Explore](https://quarcs-lab.github.io/geometrics/explore.html) | [explore app](https://geometrics-explore.streamlit.app/) | [explore.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb) |
+| 🧮 **Analyze** | β/σ/club convergence, spatial models with impacts, Markov, inequality, GWR | [Analyze](https://quarcs-lab.github.io/geometrics/analyze.html) | [analyze app](https://geometrics-analyze.streamlit.app/) | [analyze.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/analyze.ipynb) |
+| 📚 **Learn** | 11 `learn_*` concept sandboxes + a 30-topic explainer index; `.interpret()` / `.explain()` on every result | [Learn](https://quarcs-lab.github.io/geometrics/learn.html) | [learn app](https://geometrics-learn.streamlit.app/) | [learn.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/learn.ipynb) |
 
 ## The data model: three inputs
 

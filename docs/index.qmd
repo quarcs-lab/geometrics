@@ -18,7 +18,7 @@ reading on every result — built on the excellent [PySAL](https://pysal.org) fa
 ```{=html}
 <div class="hero-cta">
   <a class="xpd-btn xpd-btn--app" href="explore.qmd">Get started &rarr;</a>
-  <a class="xpd-btn xpd-btn--ghost" href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb" target="_blank" rel="noopener">&#9654; Try it in Colab</a>
+  <a class="xpd-btn xpd-btn--ghost" href="#try-the-apps">Try the apps</a>
   <a class="xpd-btn xpd-btn--ghost" href="https://github.com/quarcs-lab/geometrics" target="_blank" rel="noopener">&#11088; Star on GitHub</a>
 </div>
 ```
@@ -33,6 +33,7 @@ space-time views of the whole distribution.
 
 ```{=html}
 <div class="module-card__links">
+  <a href="https://geometrics-explore.streamlit.app/" target="_blank" rel="noopener">🚀 Launch app</a>
   <a href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
 </div>
 ```
@@ -46,6 +47,7 @@ decompositions, and GWR/MGWR local models.
 
 ```{=html}
 <div class="module-card__links">
+  <a href="https://geometrics-analyze.streamlit.app/" target="_blank" rel="noopener">🚀 Launch app</a>
   <a href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
 </div>
 ```
@@ -59,12 +61,28 @@ the truth and watch the estimator recover it, a **30-topic** explainer index, an
 
 ```{=html}
 <div class="module-card__links">
+  <a href="https://geometrics-learn.streamlit.app/" target="_blank" rel="noopener">🚀 Launch app</a>
   <a href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
 </div>
 ```
 :::
 
 :::
+
+## Try the apps in your browser {#try-the-apps}
+
+No install, no code — the three geometrics apps run the whole workflow in your
+browser on the bundled India and Bolivia case studies: pick a dataset, set the
+spatial weights, and every figure arrives with its plain-language reading. Each is
+the no-code companion to a docs case study.
+
+```{=html}
+<div class="app-row">
+  <a class="xpd-btn xpd-btn--app" href="https://geometrics-explore.streamlit.app/" target="_blank" rel="noopener">🗺️ Explore app</a>
+  <a class="xpd-btn xpd-btn--app" href="https://geometrics-analyze.streamlit.app/" target="_blank" rel="noopener">🧮 Analyze app</a>
+  <a class="xpd-btn xpd-btn--app" href="https://geometrics-learn.streamlit.app/" target="_blank" rel="noopener">📚 Learn app</a>
+</div>
+```
 
 ## What's inside
 
