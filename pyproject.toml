@@ -129,8 +129,9 @@ ignore = [
 ]
 # Greek symbols used in scientific prose/labels (β and λ are not flagged; σ is confusable
 # with o, so it must be allowed explicitly to read as "σ-convergence" alongside
-# "β-convergence"; ρ reads as the spatial autoregressive parameter).
-allowed-confusables = ["σ", "ρ"]
+# "β-convergence"; ρ is the spatial autoregressive parameter, γ the SLX lag coefficients,
+# α the significance level).
+allowed-confusables = ["σ", "ρ", "γ", "α"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

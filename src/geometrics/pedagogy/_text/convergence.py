@@ -155,3 +155,47 @@ register_topic(
     ),
     aliases=("club_convergence", "log_t", "phillips_sul"),
 )
+
+register_topic(
+    Explainer(
+        topic="spatial_convergence",
+        title="Spatial convergence (convergence with spillovers)",
+        what=(
+            "Classic β-convergence treats regions as isolated islands: each unit's growth "
+            "depends only on its own initial level. Spatial convergence models drop that "
+            "fiction. In the Ertur-Koch tradition, knowledge and capital externalities "
+            "spill across borders, so a region's growth also responds to its *neighbors'* "
+            "growth (ρWy) and initial conditions (WX) — exactly the spatial Durbin "
+            "structure. The convergence parameter then becomes an impact: the **total** "
+            "impact of initial income, (β + γ)/(1 - ρ), replaces raw β, and the implied "
+            "speed of convergence is computed from it. Ignoring significant spillovers "
+            "typically *understates* convergence: part of each region's catch-up arrives "
+            "through its neighborhood (the headline finding of the bundled India study, "
+            "where the SDM raises the implied speed from about 3 to 5 percent a year)."
+        ),
+        when_to_use=(
+            "Whenever ESDA shows the convergence variables are spatially clustered "
+            "(significant Moran's I on initial levels or growth) — run "
+            "`analyze_spatial_diagnostics` on the convergence regression, and estimate "
+            "`analyze_beta_convergence(model='sdm')` alongside OLS. Compare the OLS β "
+            "with the SDM total impact and its direct/indirect split: the indirect share "
+            "is the neighborhood contribution to catch-up."
+        ),
+        caveats=(
+            "Impacts, speeds and half-lives are conditional on the weights matrix W; "
+            "re-check under alternatives (`analyze_spatial_model_by_weights`).",
+            "The direct/indirect split is model-based; it summarizes associations "
+            "propagated through W, not measured flows of goods or ideas.",
+            "Spatial and aspatial βs are not directly comparable — compare OLS β with "
+            "the SDM *total* impact.",
+        ),
+        see_also=("beta_convergence", "spatial_durbin_model", "spatial_impacts"),
+        references=(
+            "Ertur & Koch (2007), 'Growth, technological interdependence and spatial "
+            "externalities', JAE 22(6)",
+            "Rey & Montouri (1999), 'US regional income convergence: a spatial "
+            "econometric perspective', Regional Studies 33(2)",
+        ),
+    ),
+    aliases=("ertur_koch",),
+)
