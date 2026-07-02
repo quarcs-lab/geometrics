@@ -149,7 +149,7 @@ except ValueError as err:
 ```
 
 So filter to the always-positive balanced panel first, exactly as the
-[quickstart](../quickstart.qmd) does — dropping the offending *district* (all its
+[Explore page](../explore.qmd) does — dropping the offending *district* (all its
 years, keeping the panel balanced), not just the offending rows:
 
 ```{python}

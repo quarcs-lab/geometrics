@@ -74,10 +74,9 @@ The public API is grouped by prefix — the module map of this site:
 - **`analyze_*`** — estimate and test: β/σ/club convergence, the spreg suite
   (OLS/SAR/SEM/SLX/SDM) with LeSage-Pace impacts and LM diagnostics, Markov and
   spatial Markov transitions, Gini/Theil inequality, GWR/MGWR.
-- **`learn_*`** (from v0.1.2) — teaching sandboxes that simulate data from a known
-  data-generating process so a learner can watch an estimator recover a planted
-  parameter. **Never point them at user data** — they take knobs (e.g. `rho=`,
-  `seed=`), not DataFrames.
+- **`learn_*`** — teaching sandboxes that simulate data from a known data-generating
+  process so a learner can watch an estimator recover a planted parameter. **Never
+  point them at user data** — they take knobs (e.g. `rho=`, `seed=`), not DataFrames.
 - Unprefixed **utilities** — `read_gdf`, `make_weights`, `set_panel`, `set_labels`,
   `build_data_dict`, `explain`, `list_topics`, ...
 

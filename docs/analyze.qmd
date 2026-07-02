@@ -1,0 +1,266 @@
+---
+title: "Analyze convergence and inequality"
+---
+
+```{=html}
+<div class="try-banner">
+  <p class="try-banner__title">✨ <strong>Try this page interactively</strong> — no install needed.</p>
+  <div class="try-banner__actions">
+    <a class="xpd-btn xpd-btn--colab" href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+  </div>
+</div>
+```
+
+The **Analyze** module estimates what [Explore](explore.qmd) described. This page is a
+**case study** on the bundled Bolivia panel — 112 provinces with PWT-anchored GDP per
+capita, 2012–2022 (from [Rossi-Hansberg & Zhang's local GDP](articles/bolivia-dataset.qmd),
+rescaled to Penn World Table 11.0) — asking the three standing questions of the
+convergence literature: *are poorer provinces catching up, do spillovers carry growth
+across borders, and is the national gap narrowing?*
+
+The functions appear in the order an analysis actually runs: *build the growth
+cross-section → estimate β without space → add spillovers → let the diagnostics pick
+the model → check robustness to W → σ-convergence → clubs → distribution dynamics →
+inequality and its decomposition → local heterogeneity.* (The
+[India case study](articles/india-case-study.qmd) runs this same arc on the flagship
+520-district panel.)
+
+::: {.callout-note}
+Every `.interpret()` below reads an *association*, never a cause — estimates from
+observational regional data describe patterns, not policy effects. The
+[Learn](learn.qmd) module demonstrates each estimator on simulated data where the
+truth is planted.
+:::
+
+## Stage 0 — Load and declare
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import numpy as np
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_bolivia()        # 112 provinces x 2012-2022
+df = gm.set_labels(df, df_dict, set_panel=True)  # labels + (gid, year), once
+w = gm.make_weights(gdf)                         # queen contiguity, row-standardized
+df.head(3)
+```
+
+Five provinces are fully censored in the source product (polygons but no panel rows) —
+geometrics warns and carries on; see [the Bolivia dataset](articles/bolivia-dataset.qmd).
+
+## Stage 1 — The growth cross-section
+
+Every convergence regression starts from the same frame: one row per province, its
+initial level and its annualized log growth. `growth_cross_section` builds it
+explicitly, so the β regression that follows has no hidden steps:
+
+```{python}
+cs = gm.growth_cross_section(df, "gdppc")
+cs.head()
+```
+
+## Stage 2 — β-convergence, without space
+
+Do initially-poorer provinces grow faster? A negative slope of growth on the initial
+(log) level says yes; `speed` and `half_life` translate it into years:
+
+```{python}
+ols = gm.analyze_beta_convergence(df, "gdppc", model="ols")
+print(
+    f"beta = {ols.beta_total:.4f}  (speed {ols.speed:.3f}, "
+    f"half-life {ols.half_life:.0f} yr)"
+)
+ols.fig
+```
+
+```{python}
+print(ols.interpret())
+```
+
+## Stage 3 — β with spillovers (the spatial Durbin model)
+
+Provinces are not islands: `model="sdm"` adds the spatial lags of outcome and
+covariates, and the convergence estimate becomes a LeSage-Pace **total impact** with
+direct and indirect (spillover) components — Monte-Carlo standard errors included:
+
+```{python}
+sdm = gm.analyze_beta_convergence(
+    df, "gdppc", model="sdm", gdf=gdf, w=w, n_draws=1000
+)
+print(
+    f"SDM total: {sdm.beta_total:.4f} = direct {sdm.beta_direct:.4f} "
+    f"+ indirect {sdm.beta_indirect:.4f}  (rho = {sdm.rho:.2f})"
+)
+```
+
+```{python}
+print(sdm.interpret())
+```
+
+## Stage 4 — Which spatial model do the data ask for?
+
+Rather than assuming the SDM, let the Lagrange-multiplier diagnostics inspect the OLS
+residuals and apply the Anselin-Florax decision rule:
+
+```{python}
+cs["ln_initial"] = np.log(cs["initial"])
+cs["year"] = 2012
+cs = gm.set_panel(cs, entity="gid", time="year")
+
+diag = gm.analyze_spatial_diagnostics(
+    cs, outcome="growth", covariates=["ln_initial"], gdf=gdf, w=w
+)
+print(f"Recommendation: {diag.recommendation}\n")
+print(diag.reasoning)
+```
+
+The recommended specification is one `model=` switch away — and its full spreg table
+with the impact decomposition comes from `analyze_spatial_model`:
+
+```{python}
+model = gm.analyze_spatial_model(
+    cs,
+    outcome="growth",
+    covariates=["ln_initial"],
+    gdf=gdf,
+    w=w,
+    model="durbin",
+    n_draws=1000,
+)
+model.gt
+```
+
+## Stage 5 — Robust to the weights choice?
+
+A conclusion that only holds under one definition of "neighbor" is fragile.
+`analyze_spatial_model_by_weights` re-estimates the same model under alternative
+weights and compares the impacts side by side:
+
+```{python}
+robust = gm.analyze_spatial_model_by_weights(
+    cs,
+    outcome="growth",
+    covariates=["ln_initial"],
+    gdf=gdf,
+    weights={
+        "queen": gm.make_weights(gdf, method="queen"),
+        "knn4": gm.make_weights(gdf, method="knn", k=4),
+        "knn6": gm.make_weights(gdf, method="knn", k=6),
+    },
+    model="durbin",
+    n_draws=1000,
+)
+robust.fig
+```
+
+```{python}
+print(robust.interpret())
+```
+
+## Stage 6 — Is the gap narrowing? (σ-convergence)
+
+β asks about catch-up; σ asks whether cross-sectional **dispersion** actually shrank.
+Both matter — fast catch-up can coexist with stable dispersion:
+
+```{python}
+sigma = gm.analyze_sigma_convergence(df, "gdppc")
+sigma.fig
+```
+
+```{python}
+print(sigma.interpret())
+```
+
+::: {.callout-tip}
+Dispersion is measured on logs, so the series must be strictly positive — `gdppc`
+is. For a panel with zeros (India's night lights), filter first: the
+[India case study](articles/india-case-study.qmd) shows the pattern.
+:::
+
+## Stage 7 — One Bolivia or several? (convergence clubs)
+
+Global convergence can fail while **clubs** of provinces converge to different
+steady states. The Phillips-Sul log(t) test and clustering find them from the data:
+
+```{python}
+clubs = gm.analyze_convergence_clubs(df, "ln_gdppc", gdf=gdf)
+print(clubs.interpret())
+```
+
+```{python}
+clubs.fig_map if clubs.fig_map is not None else clubs.fig
+```
+
+## Stage 8 — Distribution dynamics (Markov chains)
+
+How mobile are provinces across the income distribution — and does mobility depend on
+the neighbors? (Requires the `dynamics` extra: `pip install "geometrics[dynamics]"`.)
+
+```{python}
+mkv = gm.analyze_markov_transitions(df, "gdppc", k=4)
+mkv.gt
+```
+
+The spatially conditioned chains need every mapped province observed in every period —
+so drop the five censored polygons from the geometry first (their weights are rebuilt
+on the subset automatically):
+
+```{python}
+gdf_obs = gdf[gdf["gid"].isin(df["gid"])]
+spm = gm.analyze_spatial_markov(df, "gdppc", gdf=gdf_obs, k=4, m=4)
+print(spm.interpret())
+```
+
+## Stage 9 — Inequality: trend and decomposition
+
+The same panel, read through inequality indices — including the spatial Gini, which
+splits inequality into neighbor and non-neighbor pairs:
+
+```{python}
+ineq = gm.analyze_inequality_over_time(df, "gdppc", gdf=gdf, w=w)
+ineq.fig
+```
+
+```{python}
+print(ineq.interpret())
+```
+
+How much of provincial inequality is *between departments* rather than within them?
+The Theil index decomposes exactly:
+
+```{python}
+theil = gm.analyze_theil_decomposition(df, "gdppc", "name1")
+theil.fig
+```
+
+```{python}
+print(theil.interpret())
+```
+
+## Stage 10 — Local heterogeneity (GWR, briefly)
+
+One β for all of Bolivia may hide local stories. Geographically weighted regression
+lets the convergence coefficient vary over space and maps it:
+
+```{python}
+gwr = gm.analyze_gwr(
+    cs, outcome="growth", covariates=["ln_initial"], gdf=gdf
+)
+gwr.figs["ln_initial"]
+```
+
+Multiscale GWR (`analyze_mgwr`) lets each term choose its own bandwidth — see the
+[reference](reference/analyze_mgwr.qmd) and the India article for a full run.
+
+## Where next
+
+- [Explore](explore.qmd) — the descriptive workflow that should precede all of this
+- [Learn](learn.qmd) — every estimator above, demonstrated on simulated data with a
+  planted truth
+- [Spatial spillovers](articles/spillovers.qmd) — the spreg suite in depth;
+  [Distribution dynamics](articles/dynamics.qmd); [Regional inequality](articles/inequality.qmd)
+- [The India case study](articles/india-case-study.qmd) — this arc on 520 districts

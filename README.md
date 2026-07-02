@@ -10,7 +10,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://pypi.org/project/geometrics/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/quickstart.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb)
 
 **geometrics** studies **regional growth, convergence, and inequality** with explicit
 spatial methods. It builds on the excellent [PySAL](https://pysal.org) family —
@@ -22,9 +22,15 @@ convergence literature into illustrative, easy-to-apply functions that return
 interactive [Plotly](https://plotly.com/python/) figures,
 [Great Tables](https://posit-dev.github.io/great-tables/), and tidy DataFrames.
 
-It follows the design language of [expdpy](https://github.com/cmg777/expdpy): every
-function returns a typed result object with `.df`, `.fig`, plain-language
-`.interpret()`, and concept `.explain()`.
+It follows the design language of [expdpy](https://github.com/cmg777/expdpy) and is
+presented in **three modules**, each with its own pedagogical walkthrough and Colab
+notebook:
+
+| Module | What it does | Docs | Colab |
+|---|---|---|---|
+| 🗺️ **Explore** | Choropleths, weights, Moran/LISA, space-time views | [Explore](https://quarcs-lab.github.io/geometrics/explore.html) | [explore.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb) |
+| 🧮 **Analyze** | β/σ/club convergence, spatial models with impacts, Markov, inequality, GWR | [Analyze](https://quarcs-lab.github.io/geometrics/analyze.html) | [analyze.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/analyze.ipynb) |
+| 📚 **Learn** | 11 `learn_*` concept sandboxes + a 30-topic explainer index; `.interpret()` / `.explain()` on every result | [Learn](https://quarcs-lab.github.io/geometrics/learn.html) | [learn.ipynb](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/learn.ipynb) |
 
 ## The data model: three inputs
 
@@ -53,7 +59,7 @@ pip install "geometrics[all]"          # everything, incl. PNG export
   `load_bolivia_departments()` (9 departments), `load_bolivia_grid()` (1,603 cells) —
   see [`datasets/`](datasets/BOL-005popAdj-PWTscaled/) for the citation-grade documentation
 
-## Quickstart: the Indian case study
+## At a glance: the Indian case study
 
 ```python
 import geometrics as gm
@@ -92,6 +98,10 @@ res.fig                                      # convergence scatter
   (`analyze_theil_decomposition`)
 - **Local models** — GWR and multiscale GWR with mapped local coefficients
   (`analyze_gwr`, `analyze_mgwr`)
+- **Concept sandboxes** — 11 `learn_*` teaching functions that simulate data from a
+  known DGP so you can watch each estimator recover a planted parameter
+  (`learn_spatial_autocorrelation`, `learn_spatial_spillovers`,
+  `learn_beta_convergence`, ...)
 
 ## Documentation
 

@@ -272,7 +272,7 @@ for note in lisa.notes:
 - **Weights** — build from the *same* geometry (`gm.make_weights(gdf, ...)`) and
   inspect the graph with `gm.explore_connectivity_map(gdf, w=w)` before trusting it.
 
-From here, the [quickstart](../quickstart.qmd) runs the whole workflow in a page,
+From here, the [Explore page](../explore.qmd) runs the whole workflow in a page,
 [Beta and sigma convergence](convergence.qmd) covers the convergence toolkit, and
 [the India case study](india-case-study.qmd) shows the three inputs carrying a full
 replication.

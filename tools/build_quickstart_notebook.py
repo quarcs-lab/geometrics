@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Build the Google Colab notebooks from the docs pages.
 
-The docs pages (``docs/quickstart.qmd`` and ``docs/articles/india-case-study.qmd``) are
-the single source of truth for the code-along walkthroughs. This script regenerates one
-notebook per page under ``notebooks/`` so the two never drift — each can be opened
-straight from GitHub in Google Colab.
+The docs pages (the three module pages ``docs/explore.qmd`` / ``docs/analyze.qmd`` /
+``docs/learn.qmd`` and ``docs/articles/india-case-study.qmd``) are the single source of
+truth for the code-along walkthroughs. This script regenerates one notebook per page
+under ``notebooks/`` so the two never drift — each can be opened straight from GitHub
+in Google Colab.
 
 The conversion is ``quarto convert`` (the canonical ``.qmd`` -> ``.ipynb`` mapping:
 prose -> markdown cells, ``{python}`` blocks -> code cells) followed by light
@@ -34,29 +35,78 @@ from nbformat.v4 import new_code_cell, new_markdown_cell
 
 REPO = Path(__file__).resolve().parents[1]
 
+_RESTART_NOTE = (
+    "> The first cell installs everything and then **restarts the Colab runtime "
+    "once** so upgraded packages load cleanly. When it reconnects, run the cells "
+    "again (Runtime > Run all) — the install cell skips the restart the second "
+    "time."
+)
+
 PAGES = [
     {
-        "qmd": "docs/quickstart.qmd",
-        "slug": "quickstart",
+        "qmd": "docs/explore.qmd",
+        "slug": "explore",
         "title_md": (
-            "# geometrics — quickstart\n"
+            "# Explore regional data — the geometrics Explore module\n"
             "\n"
             "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub "
             "if yours is older, to get the latest version._\n"
             "\n"
-            "A cloud-runnable walkthrough of "
-            "[geometrics](https://github.com/quarcs-lab/geometrics): regional growth, "
-            "convergence, and inequality analysis on the PySAL stack, illustrated with "
-            "the bundled Indian district case study. Run the install cell below first, "
-            "then run the rest top to bottom.\n"
+            "A cloud-runnable walkthrough of the **Explore** module of "
+            "[geometrics](https://github.com/quarcs-lab/geometrics): choropleths, "
+            "spatial weights, Moran and LISA, and space-time views of the regional "
+            "distribution, on 520 Indian districts observed by satellite nighttime "
+            "lights (1996-2010). Run the install cell below first, then run the rest "
+            "top to bottom.\n"
             "\n"
-            "> The first cell installs everything and then **restarts the Colab runtime "
-            "once** so upgraded packages load cleanly. When it reconnects, run the cells "
-            "again (Runtime > Run all) — the install cell skips the restart the second "
-            "time.\n"
+            f"{_RESTART_NOTE}\n"
             "\n"
-            "This notebook mirrors the [quickstart page]"
-            "(https://quarcs-lab.github.io/geometrics/quickstart.html) of the docs."
+            "This notebook mirrors the [Explore page]"
+            "(https://quarcs-lab.github.io/geometrics/explore.html) of the docs."
+        ),
+    },
+    {
+        "qmd": "docs/analyze.qmd",
+        "slug": "analyze",
+        "title_md": (
+            "# Analyze convergence and inequality — the geometrics Analyze module\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub "
+            "if yours is older, to get the latest version._\n"
+            "\n"
+            "A cloud-runnable walkthrough of the **Analyze** module of "
+            "[geometrics](https://github.com/quarcs-lab/geometrics): beta/sigma/club "
+            "convergence, spatial models with LeSage-Pace impacts and diagnostics, "
+            "Markov dynamics, and inequality decomposition, on the Bolivia "
+            "PWT-anchored GDP panel (112 provinces, 2012-2022). Run the install cell "
+            "below first, then run the rest top to bottom.\n"
+            "\n"
+            f"{_RESTART_NOTE}\n"
+            "\n"
+            "This notebook mirrors the [Analyze page]"
+            "(https://quarcs-lab.github.io/geometrics/analyze.html) of the docs."
+        ),
+    },
+    {
+        "qmd": "docs/learn.qmd",
+        "slug": "learn",
+        "title_md": (
+            "# Learn spatial analysis — the geometrics Learn module\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub "
+            "if yours is older, to get the latest version._\n"
+            "\n"
+            "A cloud-runnable walkthrough of the **Learn** module of "
+            "[geometrics](https://github.com/quarcs-lab/geometrics): plain-language "
+            "`.interpret()` / `.explain()` on real results, the 30-topic concept "
+            "index, and the `learn_*` sandboxes that simulate data from a known truth "
+            "so you can watch each estimator recover it. Run the install cell below "
+            "first, then run the rest top to bottom.\n"
+            "\n"
+            f"{_RESTART_NOTE}\n"
+            "\n"
+            "This notebook mirrors the [Learn page]"
+            "(https://quarcs-lab.github.io/geometrics/learn.html) of the docs."
         ),
     },
     {

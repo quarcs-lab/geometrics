@@ -127,7 +127,7 @@ The convergence reading: dimmer districts grow faster (**direct impact
 speed of convergence — folds in the spillover that arrives through the
 neighborhood. This is the machinery behind
 `analyze_beta_convergence(..., model="sdm")` in the
-[quickstart](../quickstart.qmd).
+[Analyze page](../analyze.qmd).
 
 ## SLX for contrast: local spillovers only
 

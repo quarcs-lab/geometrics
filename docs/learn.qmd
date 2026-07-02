@@ -1,0 +1,162 @@
+---
+title: "Learn spatial analysis"
+---
+
+```{=html}
+<div class="try-banner">
+  <p class="try-banner__title">✨ <strong>Try this page interactively</strong> — no install needed.</p>
+  <div class="try-banner__actions">
+    <a class="xpd-btn xpd-btn--colab" href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+  </div>
+</div>
+```
+
+The **Learn** module is geometrics' teaching layer, and it works two complementary
+ways:
+
+1. **Every result speaks.** Each `explore_*` / `analyze_*` result carries
+   `.interpret()` — a plain-language reading of *that* result — and `.explain()`, the
+   concept behind the method.
+2. **Sandboxes with a planted truth.** The `learn_*` functions simulate data from a
+   known data-generating process, run the *real* geometrics estimator on it, and show
+   whether the truth you planted comes back. Turn the knobs (`rho=`, `shift=`,
+   `convergence_rate=`, …) and watch the concept respond.
+
+::: {.callout-note}
+Sandboxes are for learning, never for your data — they *generate* their own. And even
+here, where the truth is literally known, `.interpret()` keeps its associational
+discipline: the habit should transfer to real data, where no truth is planted.
+:::
+
+## Stage 1 — Read a real result in plain language
+
+Any result can explain itself. A quick β-convergence on the Bolivia provinces:
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_bolivia()
+df = gm.set_labels(df, df_dict, set_panel=True)
+
+res = gm.analyze_beta_convergence(df, "gdppc", model="ols")
+print(res.interpret())
+```
+
+And the concept behind it, from the built-in explainer registry:
+
+```{python}
+print(res.explain().to_markdown()[:600], "...")
+```
+
+## Stage 2 — The browsable concept index
+
+Thirty topics ship with the package — ESDA, weights, spatial models and impacts,
+convergence, distribution dynamics, inequality, and foundations. Every key works with
+`gm.explain(...)`:
+
+```{python}
+gm.list_topics()
+```
+
+```{python}
+print(gm.explain("spatial_autocorrelation").to_markdown())
+```
+
+## Stage 3 — Sandbox: *seeing* spatial autocorrelation
+
+What does ρ actually look like? Plant no dependence, then strong dependence — the
+left panel is one simulated map, the right panel tracks Moran's I across planted ρ:
+
+```{python}
+gm.learn_spatial_autocorrelation(rho=0.0).fig
+```
+
+```{python}
+strong = gm.learn_spatial_autocorrelation(rho=0.8)
+strong.fig
+```
+
+```{python}
+print(strong.interpret())
+```
+
+## Stage 4 — Sandbox: why spatial econometrics exists
+
+Simulate outcomes that spill over (`y = (I - ρW)⁻¹(βx + ε)`), then fit OLS as if
+space did not exist. The omitted spatial lag inflates the slope; the SAR model
+recovers both β and ρ:
+
+```{python}
+omit = gm.learn_omitted_spatial_lag(rho=0.7)
+omit.fig
+```
+
+```{python}
+print(omit.interpret())
+```
+
+## Stage 5 — Sandbox: spillovers you planted, impacts recovered
+
+In a spatial Durbin world the true direct and indirect effects are known in closed
+form — so you can watch the LeSage-Pace decomposition earn its keep. This is the idea
+behind [Analyze Stage 3](analyze.qmd#stage-3-β-with-spillovers-the-spatial-durbin-model):
+
+```{python}
+spill = gm.learn_spatial_spillovers(rho=0.5, gamma=0.5)
+spill.fig
+```
+
+```{python}
+print(spill.interpret())
+```
+
+## Stage 6 — Sandbox: convergence at a known speed
+
+Plant a 2% convergence rate; the growth-on-initial regression should hand it back —
+slope, speed, and half-life:
+
+```{python}
+beta = gm.learn_beta_convergence(convergence_rate=0.02)
+beta.fig
+```
+
+```{python}
+beta.df
+```
+
+## Stage 7 — The full sandbox catalog
+
+Eleven sandboxes cover the package's method families — each links to its reference
+page with every knob documented:
+
+| Sandbox | The lesson |
+|---|---|
+| [`learn_spatial_autocorrelation`](reference/learn_spatial_autocorrelation.qmd) | What ρ looks like, and how Moran's I tracks it |
+| [`learn_spatial_weights`](reference/learn_spatial_weights.qmd) | The same field under queen / rook / knn — W is a choice |
+| [`learn_lisa_clusters`](reference/learn_lisa_clusters.qmd) | Planted hot/cold spots, recovered (and false positives counted) |
+| [`learn_spatial_spillovers`](reference/learn_spatial_spillovers.qmd) | Direct/indirect/total impacts vs a closed-form truth |
+| [`learn_omitted_spatial_lag`](reference/learn_omitted_spatial_lag.qmd) | The bias of ignoring Wy — and how SAR repairs it |
+| [`learn_beta_convergence`](reference/learn_beta_convergence.qmd) | A planted convergence rate, recovered |
+| [`learn_sigma_convergence`](reference/learn_sigma_convergence.qmd) | A planted dispersion path; trend = ln ρ exactly |
+| [`learn_convergence_clubs`](reference/learn_convergence_clubs.qmd) | Two planted clubs; Phillips-Sul finds them |
+| [`learn_markov_chains`](reference/learn_markov_chains.qmd) | A planted transition matrix, recovered cell by cell |
+| [`learn_spatial_markov`](reference/learn_spatial_markov.qmd) | Mobility that depends on the neighbors — detected |
+| [`learn_theil_decomposition`](reference/learn_theil_decomposition.qmd) | A planted between/within split, decomposed exactly |
+
+(The two Markov sandboxes need the `dynamics` extra:
+`pip install "geometrics[dynamics]"`.)
+
+## Prefer sliders?
+
+The Learn app wraps every sandbox knob in a slider and pairs it with the explainer
+browser — no install needed. *(Launching soon — the button will appear here.)*
+
+## Where next
+
+- [Explore](explore.qmd) — apply the ESDA ideas to the India panel
+- [Analyze](analyze.qmd) — the estimators these sandboxes demystify, on Bolivia
+- [API reference](reference/index.qmd) — every knob of every sandbox

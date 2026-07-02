@@ -25,7 +25,13 @@ SITE = DOCS / "_site"
 BASE = "https://quarcs-lab.github.io/geometrics"
 
 PAGES = [
-    ("Quickstart", "quickstart", "load the India case study and run the core flow"),
+    ("Explore", "explore", "maps, weights, Moran/LISA, space-time views — India"),
+    (
+        "Analyze",
+        "analyze",
+        "beta/sigma/club convergence, spatial models with impacts, Markov, inequality — Bolivia",
+    ),
+    ("Learn", "learn", "the learn_* concept sandboxes and the explainer registry"),
     ("The data model", "articles/data-model", "the (gdf, df, df_dict) contract"),
     ("Convergence", "articles/convergence", "beta/sigma convergence and clubs"),
     ("Spatial dependence", "articles/spatial-dependence", "weights, Moran, LISA"),

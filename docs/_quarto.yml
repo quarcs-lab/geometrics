@@ -17,8 +17,12 @@ website:
     left:
       - text: "Home"
         file: index.qmd
-      - text: "Quickstart"
-        file: quickstart.qmd
+      - text: "Explore"
+        file: explore.qmd
+      - text: "Analyze"
+        file: analyze.qmd
+      - text: "Learn"
+        file: learn.qmd
       - text: "For AI / LLMs"
         file: use-with-llms.qmd
       - text: "Articles"
