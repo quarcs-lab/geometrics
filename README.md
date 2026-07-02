@@ -38,11 +38,18 @@ pip install "geometrics[dynamics]"     # + Markov / spatial Markov (giddy)
 pip install "geometrics[all]"          # everything, incl. PNG export
 ```
 
-## Quickstart: the Indian case study
+## Bundled case studies
 
-The bundled case study covers 520 Indian districts observed by satellite nighttime
-lights (1996-2010), from
-[Mendez, Kabiraj & Li (quarcs-lab/project2025s-py)](https://github.com/quarcs-lab/project2025s-py).
+- **India** — 520 districts observed by satellite nighttime lights (1996-2010), from
+  [Mendez, Kabiraj & Li (quarcs-lab/project2025s-py)](https://github.com/quarcs-lab/project2025s-py):
+  `gm.data.load_india()`, `load_india_states()`
+- **Bolivia** — PWT-anchored local GDP (2021 PPP US$, 2012-2022) at three scales,
+  derived from [Rossi-Hansberg & Zhang (2026)](https://bfidatastudio.org/gdp) and
+  Penn World Table 11.0: `gm.data.load_bolivia()` (112 provinces),
+  `load_bolivia_departments()` (9 departments), `load_bolivia_grid()` (1,603 cells) —
+  see [`datasets/`](datasets/BOL-005popAdj-PWTscaled/) for the citation-grade documentation
+
+## Quickstart: the Indian case study
 
 ```python
 import geometrics as gm

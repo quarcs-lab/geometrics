@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geometrics"
-version = "0.1.0"
+version = "0.1.1"
 description = "Regional growth, convergence, and inequality analysis on the PySAL stack."
 readme = "README.md"
 license = { text = "MIT" }

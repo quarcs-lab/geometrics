@@ -2,6 +2,19 @@
 title: "Changelog"
 ---
 
+## v0.1.1 (2026-07-02)
+
+- **New dataset: Bolivia (BOL-005popAdj-PWTscaled)** — the 0.25° gridded GDP of
+  Rossi-Hansberg & Zhang (2026) under `0_05` censoring, rescaled so national
+  totals equal Penn World Table 11.0 (2021 PPP US$), 2012–2022, on GADM 4.10
+  boundaries. Committed under `datasets/` in this repository and served from
+  pinned, hash-verified raw URLs.
+- New loaders: `load_bolivia()` (112 provinces; 5 fully-censored provinces have
+  polygons but no panel rows — documented), `load_bolivia_departments()`
+  (9 departments), `load_bolivia_grid()` (1,603 cells with a synthesized single
+  `cell` entity id), `load_bolivia_raw()` (any level incl. ADM0).
+- New article: [The Bolivia dataset](articles/bolivia-dataset.qmd).
+
 ## v0.1.0 (2026-07-02)
 
 First public release.

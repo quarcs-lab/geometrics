@@ -32,6 +32,8 @@ website:
             file: articles/dynamics.qmd
           - text: "The India case study"
             file: articles/india-case-study.qmd
+          - text: "The Bolivia dataset"
+            file: articles/bolivia-dataset.qmd
       - text: "Reference"
         file: reference/index.qmd
       - text: "Changelog"
@@ -148,12 +150,18 @@ quartodoc:
         - list_topics
     - title: Datasets
       desc: >-
-        The bundled Indian case study — 520 districts observed by satellite nighttime
-        lights (1996-2010) and a 32-state demo, fetched from the source paper's
-        repository and cached locally.
+        The bundled case studies — 520 Indian districts observed by satellite
+        nighttime lights (1996-2010) with a 32-state demo, and the Bolivia
+        PWT-anchored local GDP collection (departments, provinces, and 0.25-degree
+        grid cells, 2012-2022). Files are fetched from pinned GitHub raw URLs,
+        hash-verified, and cached locally.
       package: geometrics.data
       contents:
         - load_india
         - load_india_states
         - load_india_raw
+        - load_bolivia
+        - load_bolivia_departments
+        - load_bolivia_grid
+        - load_bolivia_raw
         - clear_cache

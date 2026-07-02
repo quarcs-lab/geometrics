@@ -1,0 +1,129 @@
+---
+title: "The Bolivia dataset"
+subtitle: "PWT-anchored local GDP at three spatial scales, 2012-2022"
+---
+
+geometrics ships a second case study: **BOL-005popAdj-PWTscaled**, a Bolivia
+subnational GDP product built from the 0.25° gridded estimates of
+Rossi-Hansberg & Zhang (2026) under their most aggressive low-density censoring
+(`0_05`), **rescaled so the national totals exactly equal Penn World Table
+11.0** (`rgdpo` and `pop`). GDP and population are therefore in interpretable
+**2021 PPP US dollars**, while the model's relative spatial pattern is
+preserved exactly. The collection is delivered at three analysis scales —
+**departments** (ADM1, n=9), **provinces** (ADM2, n=112), and the raw **grid
+cells** (n=1,603) — for 2012–2022, with GADM 4.10 boundaries.
+
+If you use it, cite the underlying estimates, the benchmark, and the
+boundaries: **Rossi-Hansberg & Zhang (2026, *J. Urban Economics* 154)**,
+**Feenstra, Inklaar & Timmer (2015, *AER* 105(10); PWT 11.0)**, and **GADM
+4.10**. The full method (with the rescaling math) is documented in
+[`datasets/BOL-005popAdj-PWTscaled/README.md`](https://github.com/quarcs-lab/geometrics/tree/main/datasets/BOL-005popAdj-PWTscaled).
+
+## Three scales, one contract
+
+Each loader returns the usual geometrics trio — ID-only geometry, long panel,
+data dictionary:
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_bolivia()          # 112 provinces (ADM2)
+df = gm.set_labels(df, df_dict, set_panel=True)
+print(f"provinces: {gdf.shape[0]} polygons, panel {df.shape}")
+
+gdf1, df1, dd1 = gm.data.load_bolivia_departments()  # 9 departments (ADM1)
+df1 = gm.set_labels(df1, dd1, set_panel=True)
+```
+
+The dictionaries ship with the data and document every column, including the
+scaling provenance:
+
+```{python}
+df_dict[df_dict["var_name"].isin(["gid", "year", "gdp_pwt", "gdppc", "ln_gdppc"])]
+```
+
+One data fact to know: **five provinces have boundary polygons but no panel
+rows** — all of their grid cells fall below the `0_05` population-density
+censoring threshold. geometrics' alignment machinery warns about them and
+carries on; the warnings below are expected, not a bug.
+
+## The map
+
+```{python}
+gm.explore_choropleth_map(df, "ln_gdppc", gdf=gdf, period=2022).fig
+```
+
+## Convergence across provinces, 2012-2022
+
+Did poorer provinces grow faster? First aspatially, then with the spatial
+Durbin model on queen-contiguity weights:
+
+```{python}
+w = gm.make_weights(gdf)  # queen contiguity, row-standardized
+
+ols = gm.analyze_beta_convergence(df, "gdppc", model="ols")
+sdm = gm.analyze_beta_convergence(
+    df, "gdppc", model="sdm", gdf=gdf, w=w, n_draws=2000
+)
+print(
+    f"OLS beta: {ols.beta_total:.4f} (half-life {ols.half_life:.0f} yr)\n"
+    f"SDM total: {sdm.beta_total:.4f} = direct {sdm.beta_direct:.4f} "
+    f"+ indirect {sdm.beta_indirect:.4f} (rho = {sdm.rho:.2f})"
+)
+```
+
+```{python}
+sdm.fig
+```
+
+```{python}
+print(sdm.interpret())
+```
+
+## How much inequality lies between departments?
+
+The province panel carries its parent department (`name1`), so the Theil
+between/within decomposition is one call:
+
+```{python}
+theil = gm.analyze_theil_decomposition(df, "gdppc", "name1")
+theil.fig
+```
+
+```{python}
+print(theil.interpret())
+```
+
+## Down to the grid
+
+The raw 0.25° cells behind the admin aggregates — useful when administrative
+boundaries are themselves part of the question:
+
+```{python}
+gdfg, dfg, ddg = gm.data.load_bolivia_grid()
+dfg = gm.set_labels(dfg, ddg, set_panel=True)
+print(f"cells: {gdfg.shape[0]}, panel {dfg.shape}")
+
+gm.explore_choropleth_map(dfg, "ln_gdppc", gdf=gdfg, period=2022, tiles=None).fig
+```
+
+And spatial structure at cell level — LISA clusters of log GDP per capita:
+
+```{python}
+wg = gm.make_weights(gdfg)  # queen on the grid = rook + corners
+lisa = gm.explore_lisa_cluster_map(dfg, "ln_gdppc", gdf=gdfg, w=wg, period=2022)
+print(f"Moran's I = {lisa.moran_i:.2f} (p = {lisa.p_sim_global:.3f}); "
+      f"HH cells: {lisa.n_hh}, LL cells: {lisa.n_ll}")
+lisa.fig
+```
+
+## Where next
+
+- [Beta and sigma convergence](convergence.qmd) — the convergence toolkit in depth
+- [Spatial spillovers](spillovers.qmd) — diagnostics, the spreg suite, robustness
+- [The data model](data-model.qmd) — bring your own (gdf, df, df_dict)
+- The other bundled case study: [India](india-case-study.qmd)

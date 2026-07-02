@@ -33,6 +33,11 @@ PAGES = [
     ("Regional inequality", "articles/inequality", "Gini/Theil and decompositions"),
     ("Distribution dynamics", "articles/dynamics", "Markov and spatial Markov"),
     ("The India case study", "articles/india-case-study", "the full replication arc"),
+    (
+        "The Bolivia dataset",
+        "articles/bolivia-dataset",
+        "PWT-anchored local GDP at three scales",
+    ),
     ("Changelog", "changelog", "release notes"),
 ]
 
@@ -50,7 +55,16 @@ def _api_groups() -> list[tuple[str, list[str]]]:
         ),
         (
             "geometrics.data",
-            ["load_india", "load_india_states", "load_india_raw", "clear_cache"],
+            [
+                "load_india",
+                "load_india_states",
+                "load_india_raw",
+                "load_bolivia",
+                "load_bolivia_departments",
+                "load_bolivia_grid",
+                "load_bolivia_raw",
+                "clear_cache",
+            ],
         ),
     ]
 

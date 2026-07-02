@@ -23,6 +23,7 @@ Install: pip install geometrics  (extras: [dynamics] for Markov via giddy,
 - [Regional inequality](https://quarcs-lab.github.io/geometrics/articles/inequality.html): Gini/Theil and decompositions
 - [Distribution dynamics](https://quarcs-lab.github.io/geometrics/articles/dynamics.html): Markov and spatial Markov
 - [The India case study](https://quarcs-lab.github.io/geometrics/articles/india-case-study.html): the full replication arc
+- [The Bolivia dataset](https://quarcs-lab.github.io/geometrics/articles/bolivia-dataset.html): PWT-anchored local GDP at three scales
 - [Changelog](https://quarcs-lab.github.io/geometrics/changelog.html): release notes
 
 ## API
@@ -30,7 +31,7 @@ Install: pip install geometrics  (extras: [dynamics] for Markov via giddy,
 - explore_*: explore_choropleth_map, explore_connectivity_map, explore_moran_plot, explore_lisa_cluster_map, explore_moran_over_time, explore_distribution_over_time, explore_spacetime_heatmap
 - analyze_*: analyze_beta_convergence, analyze_sigma_convergence, analyze_convergence_clubs, analyze_spatial_model, analyze_spatial_diagnostics, analyze_spatial_model_by_weights, analyze_markov_transitions, analyze_spatial_markov, analyze_inequality_over_time, analyze_theil_decomposition, analyze_gwr, analyze_mgwr
 - utilities: read_gdf, make_weights, growth_cross_section, set_panel, resolve_panel, set_labels, resolve_label, set_roles, build_data_dict, set_palette, get_palette, explain, list_topics
-- geometrics.data: load_india, load_india_states, load_india_raw, clear_cache
+- geometrics.data: load_india, load_india_states, load_india_raw, load_bolivia, load_bolivia_departments, load_bolivia_grid, load_bolivia_raw, clear_cache
 
 ## Source
 
