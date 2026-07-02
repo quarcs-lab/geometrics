@@ -98,6 +98,10 @@ constraint-dependencies = [
     "numba>=0.60",
     "numba<0.61; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "numpy<2.1; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    # Without these floors the resolver escapes numba's numpy cap by selecting an
+    # ancient quantecon (0.3.x declares no numba dependency and breaks at import).
+    "quantecon>=0.7",
+    "giddy>=2.3.5",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -145,7 +149,10 @@ convention = "numpy"
 "tools/*" = ["D"]
 
 [tool.mypy]
-python_version = "3.11"
+# 3.12, not the 3.11 package floor: numpy >= 2.5 ships PEP 695 `type` statements in its
+# stubs, which mypy only parses at target 3.12+. Runtime 3.11 compatibility is covered
+# by ruff's py311 target and the 3.11 cells of the CI test matrix.
+python_version = "3.12"
 warn_unused_configs = true
 ignore_missing_imports = true
 files = ["src/geometrics"]
