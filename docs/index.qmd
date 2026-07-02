@@ -109,6 +109,7 @@ function returns a frozen result object: `.df` (tidy frame), `.fig` (Plotly), `.
 ```bash
 pip install geometrics                 # core
 pip install "geometrics[dynamics]"     # + Markov / spatial Markov (giddy)
+pip install "geometrics[streamlit]"    # + the three no-code apps
 pip install "geometrics[all]"          # everything, incl. PNG export
 ```
 

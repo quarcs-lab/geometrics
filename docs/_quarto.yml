@@ -176,6 +176,15 @@ quartodoc:
         - get_palette
         - explain
         - list_topics
+    - title: Interactive apps
+      desc: >-
+        The three no-code Streamlit apps — one per module — launched from Python
+        (requires the `streamlit` extra) or from the repo's `app_*.py` scripts.
+      package: geometrics.streamlit_app
+      contents:
+        - ExploreApp
+        - AnalyzeApp
+        - LearnApp
     - title: Datasets
       desc: >-
         The bundled case studies — 520 Indian districts observed by satellite

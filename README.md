@@ -45,8 +45,13 @@ notebook:
 ```bash
 pip install geometrics                 # core
 pip install "geometrics[dynamics]"     # + Markov / spatial Markov (giddy)
+pip install "geometrics[streamlit]"    # + the three no-code apps
 pip install "geometrics[all]"          # everything, incl. PNG export
 ```
+
+Run the apps locally with `streamlit run app_explore.py` (or `app_analyze.py` /
+`app_learn.py`), or from Python with
+`geometrics.streamlit_app.ExploreApp()`.
 
 ## Bundled case studies
 

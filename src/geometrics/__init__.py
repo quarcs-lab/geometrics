@@ -88,7 +88,7 @@ from geometrics.spatial_models import (
 )
 from geometrics.weights import explore_connectivity_map, make_weights
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 __all__ = [
     # ===== EXPLORE =====

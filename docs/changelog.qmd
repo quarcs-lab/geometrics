@@ -2,6 +2,23 @@
 title: "Changelog"
 ---
 
+## v0.1.3 (2026-07-02)
+
+- **Three no-code Streamlit apps** — one per module, sharing a lean shell (bundled
+  case-study picker + spatial-weights controls): the **Explore app** (choropleths,
+  connectivity, Moran/LISA, distributions over time), the **Analyze app**
+  (β/σ convergence, clubs, spatial models with impacts and LM diagnostics, weights
+  robustness, Markov dynamics, inequality/Theil, button-gated GWR), and the **Learn
+  app** (all 11 sandboxes with sliders + the searchable explainer browser). Pages
+  gate themselves on the active dataset (panel length, unit count, optional extras).
+- New `streamlit` extra (`pip install "geometrics[streamlit]"`, included in `[all]`),
+  Python launchers `ExploreApp` / `AnalyzeApp` / `LearnApp`, console scripts
+  `geometrics-explore` / `-analyze` / `-learn`, and repo-root entry points
+  (`app_explore.py`, `app_analyze.py`, `app_learn.py`, `streamlit_app.py` chooser)
+  for Streamlit Community Cloud.
+- The site now presents the library in the three modules (v0.1.2/v0.1.3 together):
+  per-module pedagogical pages, Colab notebooks, and the rewritten landing page.
+
 ## v0.1.2 (2026-07-02)
 
 - **The Learn module: 11 `learn_*` concept sandboxes.** Each simulates data from a

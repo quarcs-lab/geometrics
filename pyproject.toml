@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geometrics"
-version = "0.1.2"
+version = "0.1.3"
 description = "Regional growth, convergence, and inequality analysis on the PySAL stack."
 readme = "README.md"
 license = { text = "MIT" }
@@ -60,9 +60,18 @@ dynamics = [
 png = [
     "kaleido>=1.0",
 ]
-all = [
-    "geometrics[dynamics,png]",
+# The three no-code apps (geometrics.streamlit_app; app_explore.py etc. at the repo root).
+streamlit = [
+    "streamlit>=1.40",
 ]
+all = [
+    "geometrics[dynamics,png,streamlit]",
+]
+
+[project.scripts]
+geometrics-explore = "geometrics.streamlit_app:main_explore"
+geometrics-analyze = "geometrics.streamlit_app:main_analyze"
+geometrics-learn = "geometrics.streamlit_app:main_learn"
 
 [project.urls]
 Homepage = "https://github.com/quarcs-lab/geometrics"
@@ -113,6 +122,11 @@ include = [
     "tests",
     "README.md",
     "LICENSE",
+    "app_explore.py",
+    "app_analyze.py",
+    "app_learn.py",
+    "streamlit_app.py",
+    ".streamlit",
 ]
 
 # ----------------------------------------------------------------------------
@@ -164,6 +178,7 @@ testpaths = ["tests"]
 markers = [
     "network: tests that download the real case-study data from GitHub",
     "dynamics: tests that require the optional giddy (distribution dynamics) extra",
+    "app: tests that require the optional streamlit (apps) extra",
     "slow: long-running tests (GWR on the full case study, large Monte-Carlo draws)",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
@@ -171,6 +186,8 @@ filterwarnings = ["ignore::DeprecationWarning"]
 [tool.coverage.run]
 source = ["geometrics"]
 branch = true
+# The Streamlit UI layer is exercised via AppTest smoke tests, not line coverage.
+omit = ["*/streamlit_app/*"]
 
 [tool.coverage.report]
 show_missing = true

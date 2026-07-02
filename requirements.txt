@@ -1,0 +1,12 @@
+# Dependencies for Streamlit Community Cloud, which auto-installs from this file when
+# it deploys app_explore.py / app_analyze.py / app_learn.py / streamlit_app.py.
+# Install the released package with the Streamlit + dynamics extras so the hosted apps
+# have Streamlit, giddy (the Markov pages), and all runtime deps.
+#
+# Pin a version for reproducible deploys (e.g. geometrics[streamlit,dynamics]==0.1.3),
+# or use geometrics[streamlit,dynamics] @ git+https://github.com/quarcs-lab/geometrics.git
+# to track the unreleased main branch.
+#
+# Note: this file is only for the hosted Streamlit apps and plain `pip install -r`.
+# Local development uses uv (pyproject.toml + uv.lock), not this file.
+geometrics[streamlit,dynamics]
