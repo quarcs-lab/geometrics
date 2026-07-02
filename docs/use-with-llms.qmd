@@ -1,0 +1,136 @@
+---
+title: "geometrics for AI agents and LLMs"
+---
+
+This page is the contract an AI agent needs to use geometrics correctly: where the
+machine-readable documentation lives, how to install the package, the three-input data
+model, how to pick a function, and what every result object guarantees.
+
+## Machine-readable entry points
+
+- **[llms.txt](https://quarcs-lab.github.io/geometrics/llms.txt)** — the curated index
+  ([llmstxt.org](https://llmstxt.org) convention): what the package is, the docs pages,
+  and the full public API grouped by prefix. Fetch this first.
+- **[llms-full.txt](https://quarcs-lab.github.io/geometrics/llms-full.txt)** — the full
+  dump: every docs page's source (prose + code) plus every public signature and
+  docstring. Use it when you need exact parameter names and defaults without importing
+  the package.
+
+Every page on this site also advertises both files through
+`<link rel="alternate">` tags in its `<head>`.
+
+## Installing
+
+```bash
+pip install geometrics                 # core (maps, ESDA, convergence, spreg, GWR)
+pip install "geometrics[dynamics]"     # + Markov / spatial Markov (giddy)
+pip install "geometrics[all]"          # everything, incl. static PNG export
+```
+
+- Python **3.11+**.
+- Bleeding edge: `pip install "git+https://github.com/quarcs-lab/geometrics.git"`.
+- In scripts, never call `.fig.show()` — persist figures with
+  `res.fig.write_html("out.html")` (interactive) or `res.fig.write_image("out.png")`
+  (needs the `png` extra; tile-free maps via `tiles=None` export deterministically).
+
+## The three-input contract
+
+geometrics separates geometry, data, and metadata. Users supply all three:
+
+| Input | What it is | How it enters |
+|---|---|---|
+| `gdf` | Geometry with **only the entity ID** (+ optional name) — shapefile, zipped shapefile, GeoJSON, GeoPackage, or a GeoDataFrame | `gm.read_gdf("districts.gpkg", entity="district_id")` |
+| `df` | A **long-form panel** — one row per (entity, time) | `gm.set_panel(df, entity="district_id", time="year")` |
+| `df_dict` | A **6-column data dictionary** — `var_name, var_def, label, type, role, can_be_na` | `gm.set_labels(df, df_dict, set_panel=True)` |
+
+Declare once, use everywhere:
+
+```python
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()          # or the user's own three inputs
+df = gm.set_labels(df, df_dict, set_panel=True)  # wires entity/time into df.attrs
+w = gm.make_weights(gdf, method="knn", k=6)      # weights are built once, explicitly
+```
+
+Rules an agent must follow:
+
+- The vocabulary is always **`entity`** and **`time`**. After `set_panel` /
+  `set_labels(..., set_panel=True)` they resolve automatically from `df.attrs`; an
+  explicit `entity=` / `time=` argument always wins.
+- **`gdf` and `w` are always explicit keyword arguments** — geometry is data, never
+  hidden state. Any function that draws a map or estimates a spatial model takes
+  `gdf=` (and usually `w=`).
+- `type` in the dictionary is one of `entity / time / factor / logical / numeric`;
+  `role` is one of `"" / outcome / covariate / entity_name`.
+
+## Picking a function
+
+The public API is grouped by prefix — the module map of this site:
+
+- **`explore_*`** — describe and visualize: choropleths, the weights connectivity
+  graph, Moran scatterplots, LISA cluster maps, Moran's I over time, distribution
+  ridgelines, space-time heatmaps.
+- **`analyze_*`** — estimate and test: β/σ/club convergence, the spreg suite
+  (OLS/SAR/SEM/SLX/SDM) with LeSage-Pace impacts and LM diagnostics, Markov and
+  spatial Markov transitions, Gini/Theil inequality, GWR/MGWR.
+- **`learn_*`** (from v0.1.2) — teaching sandboxes that simulate data from a known
+  data-generating process so a learner can watch an estimator recover a planted
+  parameter. **Never point them at user data** — they take knobs (e.g. `rho=`,
+  `seed=`), not DataFrames.
+- Unprefixed **utilities** — `read_gdf`, `make_weights`, `set_panel`, `set_labels`,
+  `build_data_dict`, `explain`, `list_topics`, ...
+
+The full membership of each group is listed in
+[llms.txt](https://quarcs-lab.github.io/geometrics/llms.txt) and the
+[API reference](reference/index.qmd).
+
+## The result-object contract
+
+Every public function returns a **frozen dataclass**. Depending on the function it
+exposes:
+
+| Attribute | What it is |
+|---|---|
+| `.df` | The tidy result DataFrame (always present) |
+| `.fig` | An interactive Plotly figure (themed; never auto-shown) |
+| `.gt` | A publication-ready Great Tables object (estimation tables) |
+| named scalars | e.g. `beta`, `speed`, `half_life`, `rho`, `moran_i`, `p_value` |
+| `.interpret()` | A plain-language reading of this specific result |
+| `.explain()` | The concept explainer behind the method |
+| `notes` | Advisory notes accumulated during estimation |
+| `w_spec` | A human-readable description of the spatial weights used |
+
+Results are immutable — build a new call rather than mutating a result.
+
+## Interpretation guardrails
+
+- Lead with `res.interpret()` when reporting to a user — it is written in
+  **association-only** language. Follow it: "is associated with", never "causes" or
+  "the effect of".
+- Ground concepts with the built-in explainer registry:
+  `gm.list_topics()` → `gm.explain("spatial_autocorrelation")`.
+
+## One runnable recipe
+
+```python
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()      # ID-only geometry, long panel, dictionary
+df = gm.set_labels(df, df_dict, set_panel=True)
+w = gm.make_weights(gdf, method="knn", k=6)
+
+lisa = gm.explore_lisa_cluster_map(df, "log_ntl_pc_1996", gdf=gdf, w=w)
+print(lisa.interpret())                      # where the hot/cold spots are
+
+res = gm.analyze_beta_convergence(df, "ntl_total", model="sdm", gdf=gdf, w=w)
+print(res.interpret())                       # catch-up, speed, spillovers
+res.fig.write_html("convergence.html")
+```
+
+## Links
+
+- [Repository](https://github.com/quarcs-lab/geometrics) ·
+  [API reference](reference/index.qmd) · [Changelog](changelog.qmd)
+- Bundled case studies: `gm.data.load_india()`,
+  `gm.data.load_bolivia()` / `load_bolivia_departments()` / `load_bolivia_grid()`

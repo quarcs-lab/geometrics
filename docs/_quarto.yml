@@ -7,15 +7,20 @@ project:
 website:
   title: "geometrics"
   description: "Regional growth, convergence, and inequality analysis on the PySAL stack."
+  favicon: images/favicon.png
   repo-url: https://github.com/quarcs-lab/geometrics
   repo-actions: [issue, edit]
   navbar:
     background: primary
+    logo: images/logo-navbar.svg
+    logo-alt: "geometrics logo"
     left:
       - text: "Home"
         file: index.qmd
       - text: "Quickstart"
         file: quickstart.qmd
+      - text: "For AI / LLMs"
+        file: use-with-llms.qmd
       - text: "Articles"
         menu:
           - text: "The data model (gdf, df, df_dict)"

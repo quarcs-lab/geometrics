@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/quarcs-lab/geometrics/main/docs/images/hero.webp" alt="geometrics — regional growth, convergence, and inequality, spatially, in Python" width="100%">
+</p>
+
 # geometrics
 
 [![CI](https://github.com/quarcs-lab/geometrics/actions/workflows/ci.yml/badge.svg)](https://github.com/quarcs-lab/geometrics/actions/workflows/ci.yml)

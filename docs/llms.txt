@@ -24,6 +24,7 @@ Install: pip install geometrics  (extras: [dynamics] for Markov via giddy,
 - [Distribution dynamics](https://quarcs-lab.github.io/geometrics/articles/dynamics.html): Markov and spatial Markov
 - [The India case study](https://quarcs-lab.github.io/geometrics/articles/india-case-study.html): the full replication arc
 - [The Bolivia dataset](https://quarcs-lab.github.io/geometrics/articles/bolivia-dataset.html): PWT-anchored local GDP at three scales
+- [For AI / LLMs](https://quarcs-lab.github.io/geometrics/use-with-llms.html): how AI agents should install and call geometrics
 - [Changelog](https://quarcs-lab.github.io/geometrics/changelog.html): release notes
 
 ## API

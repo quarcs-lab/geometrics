@@ -38,6 +38,11 @@ PAGES = [
         "articles/bolivia-dataset",
         "PWT-anchored local GDP at three scales",
     ),
+    (
+        "For AI / LLMs",
+        "use-with-llms",
+        "how AI agents should install and call geometrics",
+    ),
     ("Changelog", "changelog", "release notes"),
 ]
 

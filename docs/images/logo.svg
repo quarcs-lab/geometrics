@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="geometrics logo">
+  <title>geometrics</title>
+  <!-- The classified lattice: a 3x3 choropleth whose values rise toward a
+       high-high cluster in the lower-right corner (cosmo-blue ramp). -->
+  <rect x="4"  y="4"  width="16" height="16" rx="3" fill="#d3e5f8"/>
+  <rect x="24" y="4"  width="16" height="16" rx="3" fill="#a9cdf3"/>
+  <rect x="44" y="4"  width="16" height="16" rx="3" fill="#7db3ee"/>
+  <rect x="4"  y="24" width="16" height="16" rx="3" fill="#a9cdf3"/>
+  <rect x="24" y="24" width="16" height="16" rx="3" fill="#7db3ee"/>
+  <rect x="44" y="24" width="16" height="16" rx="3" fill="#2780e3"/>
+  <rect x="4"  y="44" width="16" height="16" rx="3" fill="#7db3ee"/>
+  <rect x="24" y="44" width="16" height="16" rx="3" fill="#2780e3"/>
+  <rect x="44" y="44" width="16" height="16" rx="3" fill="#10508f"/>
+  <!-- The connectivity graph over the cluster's centroids (the spatial weights) -->
+  <path d="M52 32 L52 52 L32 52" fill="none" stroke="#ffffff" stroke-opacity="0.9"
+        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="52" cy="32" r="2.4" fill="#ffffff"/>
+  <circle cx="32" cy="52" r="2.4" fill="#ffffff"/>
+  <circle cx="52" cy="52" r="2.4" fill="#ffffff"/>
+</svg>

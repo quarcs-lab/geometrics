@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="geometrics">
+  <title>geometrics</title>
+  <!-- Solid blue tile so the mark reads at favicon sizes -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#2780e3"/>
+  <!-- The classified lattice in white, opacity-stepped, fitted to the tile -->
+  <rect x="8"  y="8"  width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.30"/>
+  <rect x="25" y="8"  width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.45"/>
+  <rect x="42" y="8"  width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.62"/>
+  <rect x="8"  y="25" width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.45"/>
+  <rect x="25" y="25" width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.62"/>
+  <rect x="42" y="25" width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.82"/>
+  <rect x="8"  y="42" width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.62"/>
+  <rect x="25" y="42" width="14" height="14" rx="3" fill="#ffffff" fill-opacity="0.82"/>
+  <rect x="42" y="42" width="14" height="14" rx="3" fill="#ffffff" fill-opacity="1.0"/>
+</svg>
