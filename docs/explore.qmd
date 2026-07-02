@@ -1,0 +1,171 @@
+---
+title: "Explore regional data"
+aliases:
+  - /quickstart.html
+---
+
+```{=html}
+<div class="try-banner">
+  <p class="try-banner__title">✨ <strong>Try this page interactively</strong> — no install needed.</p>
+  <div class="try-banner__actions">
+    <a class="xpd-btn xpd-btn--colab" href="https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/explore.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+  </div>
+</div>
+```
+
+The **Explore** module is your first look at a regional dataset — before you estimate a
+single model. This page is a **case study**: you have just been handed 520 Indian
+districts observed by DMSP-OLS satellite nighttime lights between 1996 and 2010 (from
+[Mendez, Kabiraj & Li](https://github.com/quarcs-lab/project2025s-py)) and asked three
+questions an analyst always starts with: *is development spatially clustered, where
+exactly, and how did the whole regional distribution move over time?*
+
+Every Explore function takes the panel and returns a small **result object** carrying a
+tidy `.df` plus an interactive [Plotly](https://plotly.com/python/) figure (`.fig`),
+and most offer a plain-language `.interpret()`. Read this page top to bottom: the
+functions are ordered as a **workflow** — *load the three inputs → map the level →
+encode the neighborhood → test and localize clustering → watch the distribution move
+in time and space*.
+
+::: {.callout-note}
+This is **exploratory** analysis: every reading below describes an *association*,
+never a cause. The [Analyze](analyze.qmd) module turns these patterns into estimates,
+and [Learn](learn.qmd) explains the ideas behind them with simulations you control.
+:::
+
+## Stage 0 — Load the three inputs
+
+geometrics separates geometry, data, and metadata: a geometry with **only the entity
+ID** (`gdf`), a **long-form panel** (`df`), and a **data dictionary** (`df_dict`). The
+bundled India case study ships all three; `set_labels` attaches the dictionary's
+labels to every future figure and declares the (entity, time) coordinates once.
+
+```{python}
+import warnings
+
+warnings.filterwarnings("ignore")
+
+import geometrics as gm
+
+gdf, df, df_dict = gm.data.load_india()
+df = gm.set_labels(df, df_dict, set_panel=True)  # labels + entity/time + roles, once
+df.head(3)
+```
+
+The dictionary is data too — it documents every column and drives the labels on every
+figure:
+
+```{python}
+df_dict.head(8)
+```
+
+## Stage 1 — See the map
+
+`explore_choropleth_map` classifies with mapclassify (Fisher-Jenks by default, `k`
+classes) and draws one legend entry per class, so the legend *is* the classification:
+
+```{python}
+gm.explore_choropleth_map(df, "ntl_total", gdf=gdf, period=2010).fig
+```
+
+Pass `animate=True` instead of a single `period` to play the whole 1996–2010 film,
+or switch `scheme` (`"quantiles"`, `"equalinterval"`, …) to see how much the story
+depends on the classification — `gm.explain("choropleth_classification")` explains why.
+
+## Stage 2 — Encode the neighborhood
+
+Everything spatial starts with a weights matrix **W** — the formal answer to "who is
+whose neighbor?". The paper uses 6 nearest neighbors; `explore_connectivity_map`
+draws the graph so you can inspect it *before* trusting it:
+
+```{python}
+w = gm.make_weights(gdf, method="knn", k=6)
+gm.explore_connectivity_map(gdf, w=w).fig
+```
+
+Contiguity is the common alternative (`method="queen"`) — see
+[Spatial dependence and LISA](articles/spatial-dependence.qmd) for how to choose, and
+[Analyze](analyze.qmd) for checking that results survive the choice.
+
+## Stage 3 — Is development spatially clustered?
+
+The Moran scatterplot puts each district's (standardized) value against the average of
+its neighbors; the slope is **global Moran's I**, the workhorse test of spatial
+autocorrelation:
+
+```{python}
+moran = gm.explore_moran_plot(df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996)
+moran.fig
+```
+
+```{python}
+print(moran.interpret())
+```
+
+## Stage 4 — Where exactly? (LISA)
+
+Global Moran's I says *whether* the map clusters; **LISA** (local Moran) says *where* —
+each district is classified as a High-High hot spot, Low-Low cold spot, or a
+spatial outlier (High-Low / Low-High), masked at 5% significance:
+
+```{python}
+lisa = gm.explore_lisa_cluster_map(df, "log_ntl_pc_1996", gdf=gdf, w=w, period=1996)
+lisa.fig
+```
+
+```{python}
+print(lisa.interpret())
+```
+
+## Stage 5 — The whole distribution, year by year
+
+Convergence questions are distribution questions. The ridgeline stacks the
+cross-sectional density of each year on one shared grid, so you can watch the shape —
+not just the mean — move:
+
+```{python}
+gm.explore_distribution_over_time(df, "log_ntl_pc_1996").fig
+```
+
+(`kind="animated"` plays the same densities as an animation instead.)
+
+## Stage 6 — Every district, every year
+
+The space-time heatmap keeps *every* unit visible: one row per district, one column
+per year. Sorting the rows by latitude turns geography itself into the y-axis — a
+north–south transect of the whole panel:
+
+```{python}
+gm.explore_spacetime_heatmap(
+    df, "log_ntl_pc_1996", gdf=gdf, sort_by="north_south"
+).fig
+```
+
+Rows that keep their shading left to right are persistent; rows that lighten or darken
+are mobile. `sort_by="value"` orders by the first period instead.
+
+## Stage 7 — Does the clustering strengthen or fade?
+
+Stage 3 tested one year. Running Moran's I per year closes the loop — is the spatial
+structure of development deepening or dissolving?
+
+```{python}
+mot = gm.explore_moran_over_time(df, "log_ntl_pc_1996", gdf=gdf, w=w)
+mot.fig
+```
+
+```{python}
+print(mot.interpret())
+```
+
+## Where next
+
+You now know the map clusters, where it clusters, and how the distribution moved.
+
+- [Analyze](analyze.qmd) — estimate it: β/σ/club convergence, spatial models with
+  spillovers, Markov dynamics, inequality decompositions (on the Bolivia case study)
+- [The India case study](articles/india-case-study.qmd) — the full replication arc on
+  this same panel
+- [Learn](learn.qmd) — the ideas behind W, Moran's I and LISA, taught with
+  simulations where you plant the truth
+- [The data model](articles/data-model.qmd) — bring your own `(gdf, df, df_dict)`

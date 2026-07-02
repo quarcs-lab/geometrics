@@ -28,11 +28,11 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --all-extras --group dev
       - name: Ruff (lint)
-        run: uv run ruff check src tests
+        run: uv run --no-sync ruff check src tests
       - name: Ruff (format)
-        run: uv run ruff format --check src tests
+        run: uv run --no-sync ruff format --check src tests
       - name: mypy
-        run: uv run mypy src
+        run: uv run --no-sync mypy src
 
   test:
     name: Tests (py${{ matrix.python }}, ${{ matrix.os }})
@@ -50,7 +50,7 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --all-extras --group dev --python ${{ matrix.python }}
       - name: Run tests
-        run: uv run pytest -n auto --cov=geometrics --cov-report=term-missing -m "not network"
+        run: uv run --no-sync pytest -n auto --cov=geometrics --cov-report=term-missing -m "not network"
 
   network-tests:
     name: Network tests (real case-study data)
@@ -68,4 +68,4 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --all-extras --group dev
       - name: Run network tests
-        run: uv run pytest -m network
+        run: uv run --no-sync pytest -m network

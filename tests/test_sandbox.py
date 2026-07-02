@@ -232,8 +232,6 @@ def test_type_errors_on_non_numeric_knobs():
         gm.learn_spatial_autocorrelation(rho="high")
     with pytest.raises(TypeError):
         gm.learn_beta_convergence(n_units=12.5)
-    with pytest.raises(TypeError):
-        gm.learn_markov_chains(p="not a matrix")
 
 
 def test_value_errors_on_bad_knobs():
@@ -253,6 +251,14 @@ def test_value_errors_on_bad_knobs():
         gm.learn_convergence_clubs(levels=(10.0,))
     with pytest.raises(ValueError):
         gm.learn_theil_decomposition(gaps=(0.5,))
+
+
+def test_markov_knob_validation():
+    # The giddy gate fires before knob validation (matching analyze_markov_*), so
+    # these run only where the dynamics extra is installed.
+    pytest.importorskip("giddy")
+    with pytest.raises(TypeError):
+        gm.learn_markov_chains(p="not a matrix")
     with pytest.raises(ValueError):
         gm.learn_markov_chains(p=((0.9, 0.2), (0.1, 0.9)))
 

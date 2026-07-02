@@ -29,13 +29,13 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --all-extras --group dev --group docs
       - name: Build API reference
-        run: uv run quartodoc build --config docs/_quarto.yml
+        run: uv run --no-sync quartodoc build --config docs/_quarto.yml
       - name: Register the docs kernel
-        run: uv run python -m ipykernel install --user --name geometrics
+        run: uv run --no-sync python -m ipykernel install --user --name geometrics
       - name: Render site
-        run: uv run quarto render docs
+        run: uv run --no-sync quarto render docs
       - name: Build llms.txt
-        run: uv run python tools/build_llms_txt.py
+        run: uv run --no-sync python tools/build_llms_txt.py
       - uses: actions/upload-pages-artifact@v4
         with:
           path: docs/_site
@@ -54,7 +54,7 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --group docs
       - name: Regenerate notebooks
-        run: uv run python tools/build_quickstart_notebook.py
+        run: uv run --no-sync python tools/build_quickstart_notebook.py
       - name: Fail on drift (ignoring the build stamp)
         run: |
           git diff --exit-code -I '_Notebook version: built .*' -- notebooks/
@@ -70,7 +70,7 @@ jobs:
       - name: Sync environment
         run: uv sync --locked --all-extras --group docs
       - name: Regenerate llms.txt
-        run: uv run python tools/build_llms_txt.py --canonical-only
+        run: uv run --no-sync python tools/build_llms_txt.py --canonical-only
       - name: Fail on drift
         run: git diff --exit-code -- docs/llms.txt
 
