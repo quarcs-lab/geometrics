@@ -2,6 +2,19 @@
 title: "Changelog"
 ---
 
+## Unreleased
+
+- Add `load_bolivia343()`, estimated municipal GDP for 2012–2022 on the fixed
+  2025 map343 geography, with INE-projection GDP per capita as the default. See the [construction and validation guide and Colab
+  notebook](articles/bolivia343-construction.qmd).
+
+- Correct the grid geometry returned by `load_bolivia_grid()`: the upstream
+  coordinates locate southwest corners, not centers. Archived raw files and
+  GADM department/province loader outputs stay unchanged for replication.
+- Add `load_bolivia_harmonized()` for nested departments, provinces and
+  municipalities reconstructed from the corrected grid on fixed 2025
+  boundaries, with geo4bolivia and census checks documented in the guide.
+
 ## v0.1.3 (2026-07-02)
 
 - **Three no-code Streamlit apps** — one per module, sharing a lean shell (bundled
@@ -43,7 +56,7 @@ title: "Changelog"
   totals equal Penn World Table 11.0 (2021 PPP US$), 2012–2022, on GADM 4.10
   boundaries. Committed under `datasets/` in this repository and served from
   pinned, hash-verified raw URLs.
-- New loaders: `load_bolivia()` (112 provinces; 5 fully-censored provinces have
+- New loaders: `load_bolivia()` (112 provinces; 5 provinces without an assigned grid centroid have
   polygons but no panel rows — documented), `load_bolivia_departments()`
   (9 departments), `load_bolivia_grid()` (1,603 cells with a synthesized single
   `cell` entity id), `load_bolivia_raw()` (any level incl. ADM0).

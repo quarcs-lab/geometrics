@@ -1,5 +1,11 @@
 # BOL-005popAdj-PWTscaled / ADM2 — ADM2 (Bolivia)
 
+> **Historical build.** The archived GADM assignments used a grid offset
+> caused by interpreting source southwest corners as cell centers.
+> These files are unchanged for replication. Use the corrected
+> [cross-scale build and verification](../ADM3/VERIFICATION.md) for new analyses.
+
+
 > **Self-contained dataset.** This folder can be used on its own; everything below describes the files
 > in this directory. It is one of four levels (ADM0/ADM1/ADM2/GRID) of the `BOL-005popAdj-PWTscaled` collection.
 

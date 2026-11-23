@@ -153,3 +153,60 @@ def _fetch_bolivia(name: str) -> Path:
             "and retry. To use a custom download location, set the "
             "GEOMETRICS_DATA_DIR environment variable."
         ) from exc
+
+
+#: Original distribution of SDSN Bolivia's fixed 343-unit map.
+BOL343_MAP_COMMIT = "9a2e2b536b743700a69ca8b682ba57feb9bf7e26"
+BOL343_MAP_URL = (
+    "https://raw.githubusercontent.com/quarcs-lab/gdo4bolivia/"
+    f"{BOL343_MAP_COMMIT}/geo/boundaries/map343.geojson"
+)
+BOL343_MAP_SHA256 = "19c2f1a4470b0f5642dd78850079d996593a5af64022db764f85a49391a959e3"
+BOL343_MAP_CACHE_KEY = "BOL343/map343.geojson"
+BOL343_UNITS_URL = (
+    "https://raw.githubusercontent.com/quarcs-lab/gdo4bolivia/"
+    f"{BOL343_MAP_COMMIT}/geo/units.csv"
+)
+BOL343_UNITS_SHA256 = "345e64bb9ebc34a3ff070b8eab58c934b8583abf7fd933800083f43c9b8ab004"
+BOL343_UNITS_CACHE_KEY = "BOL343/units.csv"
+
+
+_POOCH_BOL343 = pooch.create(
+    path=pooch.os_cache("geometrics"),
+    base_url="",
+    registry={
+        BOL343_MAP_CACHE_KEY: f"sha256:{BOL343_MAP_SHA256}",
+        BOL343_UNITS_CACHE_KEY: f"sha256:{BOL343_UNITS_SHA256}",
+    },
+    urls={
+        BOL343_MAP_CACHE_KEY: BOL343_MAP_URL,
+        BOL343_UNITS_CACHE_KEY: BOL343_UNITS_URL,
+    },
+    env="GEOMETRICS_DATA_DIR",
+)
+
+
+def _fetch_bolivia343_map() -> Path:
+    """Return the cached, checksum-verified map343 polygons."""
+    try:
+        return Path(_POOCH_BOL343.fetch(BOL343_MAP_CACHE_KEY))
+    except Exception as exc:
+        raise GeometricsDataError(
+            f"Could not retrieve Bolivia map343 from {BOL343_MAP_URL}. "
+            f"(local cache: {_POOCH_BOL343.abspath}). "
+            "Check your internet connection and retry; if the cache is corrupted, "
+            "call geometrics.data.clear_cache() and retry."
+        ) from exc
+
+
+def _fetch_bolivia343_units() -> Path:
+    """Return the cached, checksum-verified administrative hierarchy."""
+    try:
+        return Path(_POOCH_BOL343.fetch(BOL343_UNITS_CACHE_KEY))
+    except Exception as exc:
+        raise GeometricsDataError(
+            f"Could not retrieve the Bolivia hierarchy from {BOL343_UNITS_URL}. "
+            f"(local cache: {_POOCH_BOL343.abspath}). "
+            "Check your internet connection and retry; if the cache is corrupted, "
+            "call geometrics.data.clear_cache() and retry."
+        ) from exc

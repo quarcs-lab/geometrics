@@ -13,7 +13,8 @@ reshaped:
   (``BOL-005popAdj-PWTscaled``, committed under ``datasets/`` in the
   geometrics repository): the 0.25-degree gridded GDP of Rossi-Hansberg &
   Zhang (2026) rescaled so national totals equal Penn World Table 11.0, at
-  department (ADM1), province (ADM2), and grid-cell level, 2012--2022.
+  department (ADM1), province (ADM2), municipality (map343), and grid-cell
+  level, 2012--2022.
 
 Functions
 ---------
@@ -28,6 +29,10 @@ load_india_raw
 load_bolivia
     112 Bolivian provinces (ADM2), PWT-anchored GDP per capita panel
     (2012--2022).
+load_bolivia343
+    343 municipal-level units on a fixed 2025 geography, estimated from the grid.
+load_bolivia_harmonized
+    A nested ADM1, ADM2 or ADM3 panel built from the same fixed 2025 map.
 load_bolivia_departments
     9 Bolivian departments (ADM1), same panel.
 load_bolivia_grid
@@ -46,6 +51,7 @@ from pathlib import Path
 from typing import Literal
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 
 from geometrics.data import _registry
@@ -56,6 +62,8 @@ __all__ = [
     "load_india_states",
     "load_india_raw",
     "load_bolivia",
+    "load_bolivia343",
+    "load_bolivia_harmonized",
     "load_bolivia_departments",
     "load_bolivia_grid",
     "load_bolivia_raw",
@@ -354,7 +362,8 @@ def load_bolivia() -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
         112 province geometries with columns ``["gid", "geometry"]``, CRS
         EPSG:4326. Five provinces (``BOL.2.1_2``, ``BOL.2.8_2``,
         ``BOL.2.11_2``, ``BOL.2.13_2``, ``BOL.5.16_2``) have **no panel
-        rows**: all of their grid cells are censored at the 0_05 threshold.
+        rows** because the grid centroid method assigned no cells to them.
+        This is not an observed GDP zero.
         geometrics' alignment warns about them, which is expected.
     df : pandas.DataFrame
         Balanced panel of 1177 rows (107 provinces x 11 years, 2012--2022).
@@ -435,7 +444,7 @@ def load_bolivia_grid() -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
     ``subcell_id_0_25``); geometrics needs a single entity id shared between
     ``gdf`` and ``df``, so the loader synthesizes ``cell`` as
     ``cell_id.subcell_id.subcell_id_0_25`` and joins the geometry on the
-    cells' unique (longitude, latitude) centers.
+    cells' unique (longitude, latitude) southwest corners.
 
     {citation}
 
@@ -475,9 +484,9 @@ def load_bolivia_grid() -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
     df.insert(0, "cell", cell)
     df = df.sort_values(["cell", "year"], ignore_index=True)
 
-    # Geometry: the gpkg lacks the subcell columns but shares the cells'
-    # unique (longitude, latitude) centers — 0.25-degree centers are exact
-    # binary fractions, so the equality join is lossless.
+    # Read the legacy file for its matching roster, not its centered boxes.
+    from geometrics.data._bolivia343 import canonical_grid_footprints
+
     gdf = gpd.read_file(_registry._fetch_bolivia(f"{folder}/{stem}.gpkg"))
     lookup = df[["cell", "longitude", "latitude"]].drop_duplicates()
     gdf = _ensure_wgs84(
@@ -490,6 +499,31 @@ def load_bolivia_grid() -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
     df_dict = _normalize_bolivia_dict(
         df_dict, "cell", demote=("cell_id", "subcell_id", "subcell_id_0_25")
     )
+    for col in ("longitude", "latitude"):
+        field = df_dict["var_name"].eq(col)
+        df_dict.loc[field, "var_def"] = (
+            f"Source {col} of the southwest corner of the full 0.25-degree cell "
+            "(degrees, EPSG:4326), not its centroid."
+        )
+        df_dict.loc[field, "label"] = f"Southwest-corner {col}"
+    legacy = df_dict["var_name"].isin(
+        [
+            "gid_1",
+            "name_1",
+            "engtype_1",
+            "adm1_assign",
+            "gid_2",
+            "name_2",
+            "engtype_2",
+            "adm2_assign",
+        ]
+    )
+    df_dict.loc[legacy, "var_def"] += (
+        " Historical GADM assignment based on the legacy centered geometry; "
+        "do not use as a parent key for the corrected grid."
+    )
+    gdf = canonical_grid_footprints(gdf, df)
+
     cell_row = pd.DataFrame(
         [
             {
@@ -508,6 +542,137 @@ def load_bolivia_grid() -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
     )
     df_dict = pd.concat([cell_row, df_dict], ignore_index=True)
     return gdf, df, df_dict
+
+
+def load_bolivia343() -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
+    """Load estimated GDP for Bolivia's 343 municipal-level units.
+
+    Builds the panel from the pinned PWT 11.0-anchored quarter-degree GDP
+    and population grid, not the province aggregates. Cell totals are
+    apportioned by overlap with SDSN Bolivia's fixed 2025 municipal
+    geography (map343). This includes Indigenous autonomies and applies
+    the same boundaries retrospectively to 2012--2022. The inputs are
+    checksum-verified and cached. The estimates are constructed at load
+    time, not downloaded municipal accounts.
+
+    GDP uses fixed within-cell area weights. A source cell without a
+    municipal overlap is not allocated. The default GDP per capita uses the
+    annual INE population projections, harmonized to map343. For 333 units
+    the projection is matched one to one; for 10 linked units the combined
+    historical projections are split using interpolated 2012 and 2024 census
+    shares. These 10 estimates are not direct INE projections. The area-
+    allocated source population and its GDP-per-capita ratio remain available.
+    See the Bolivia municipal GDP construction article and notebook for
+    coverage, sensitivity checks and limits on interpretation.
+
+    Returns
+    -------
+    gdf : geopandas.GeoDataFrame
+        343 municipal-level geometries with columns 'geo_id' and 'geometry',
+        CRS EPSG:4326.
+    df : pandas.DataFrame
+        Long panel of 3773 rows (343 units x 11 years). Key columns are
+        'geo_id', 'name', 'year', 'gdp_pwt' (millions of 2021 PPP US$),
+        'pop_ine' (persons), 'gdppc' (2021 PPP US$ per person), and
+        'ln_gdppc'. 'pop_ine_method' and 'pop_ine_group' document projection
+        support. A separate 'pop_census_2012' and 'gdppc_census_2012' are
+        available only for 2012. 'pop_pwt' (millions of people), 'gdppc_pwt'
+        and 'ln_gdppc_pwt' retain the original modeled-population comparison.
+        Rows with no source GDP coverage retain their population and keys.
+    df_dict : pandas.DataFrame
+        Dictionary in panel-column order. 'geo_id' is the entity identifier
+        and 'year' the time identifier.
+
+    Raises
+    ------
+    GeometricsDataError
+        If a source file cannot be retrieved or fails its checksum.
+
+    See Also
+    --------
+    load_bolivia_grid : The pinned source grid and source-data dictionary.
+    load_bolivia : Original GADM provinces, constructed by centroid assignment.
+
+    Examples
+    --------
+    >>> from geometrics.data import load_bolivia343
+    >>> gdf, df, df_dict = load_bolivia343()  # doctest: +SKIP
+    >>> len(df)  # doctest: +SKIP
+    3773
+    """
+    from geometrics.data._bolivia343 import build_bolivia343
+
+    grid, panel, _ = load_bolivia_grid()
+    municipalities = gpd.read_file(_registry._fetch_bolivia343_map())
+    result = build_bolivia343(grid, panel, municipalities)
+    panel, dictionary = _with_bolivia343_population(result.panel)
+    return result.gdf, panel, dictionary
+
+
+def _with_bolivia343_population(
+    panel: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Attach INE denominators and publish ratios in dictionary order."""
+    from geometrics.data._bolivia_population import attach_bolivia343_population
+
+    panel = attach_bolivia343_population(panel).rename(
+        columns={
+            "pop_ine_harmonized": "pop_ine",
+            "pop_ine_census2012": "pop_census_2012",
+            "gdppc": "gdppc_pwt",
+            "ln_gdppc": "ln_gdppc_pwt",
+        }
+    )
+    gdp_dollars = panel["gdp_pwt"] * 1_000_000
+    panel["gdppc"] = gdp_dollars / panel["pop_ine"].where(panel["pop_ine"].gt(0))
+    panel["ln_gdppc"] = np.log(panel["gdppc"].where(panel["gdppc"].gt(0)))
+    census = panel["pop_census_2012"].astype(float)
+    panel["gdppc_census_2012"] = gdp_dollars / census.where(census.gt(0))
+    dictionary = _read_bundled_dict("bolivia343_dict.csv")
+    return panel[dictionary["var_name"].tolist()], dictionary
+
+
+def load_bolivia_harmonized(
+    level: Literal["adm1", "adm2", "adm3"] = "adm3",
+) -> tuple[gpd.GeoDataFrame, pd.DataFrame, pd.DataFrame]:
+    """Load the nested Bolivia 2025 geography at one of three scales.
+
+    Municipal estimates are built by :func:`load_bolivia343`. Departments
+    and provinces union those same polygons and add their GDP and
+    population using the pinned GeoDevelopment Observatory hierarchy.
+    GDP per capita is derived after summing GDP and harmonized INE persons;
+    the PWT-population comparison is returned separately. Unassigned GRID
+    mass stays outside all three scales. This is a separate geography and allocation
+    from :func:`load_bolivia` and :func:`load_bolivia_departments`.
+
+    Parameters
+    ----------
+    level : {"adm1", "adm2", "adm3"}
+        9 departments, 113 provinces, or 343 municipal-level units,
+        respectively. All use fixed 2025 geography for 2012--2022.
+
+    Returns
+    -------
+    gdf : geopandas.GeoDataFrame
+        Geometry keyed by Observatory geo_id in EPSG:4326.
+    df : pandas.DataFrame
+        Long modeled GDP and population panel. The two coarser scales
+        include counts of child units, children with modeled totals and
+        children with interpolated population shares.
+    df_dict : pandas.DataFrame
+        Data dictionary in panel column order.
+    """
+    if level not in {"adm1", "adm2", "adm3"}:
+        raise ValueError("level must be 'adm1', 'adm2' or 'adm3'")
+    gdf, panel, dictionary = load_bolivia343()
+    if level == "adm3":
+        return gdf, panel, dictionary
+
+    from geometrics.data._bolivia_harmonized import rollup_map343
+
+    units = pd.read_csv(_registry._fetch_bolivia343_units())
+    gdf, panel = rollup_map343(gdf, panel, units, level)
+    return gdf, panel, _read_bundled_dict("bolivia_harmonized_dict.csv")
 
 
 def load_bolivia_raw(

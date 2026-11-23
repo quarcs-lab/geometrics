@@ -1,0 +1,184 @@
+{
+  "geography": "SDSN Bolivia 2025 map343, using pinned GDO IDs",
+  "units": "people",
+  "years": [
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+  ],
+  "source_yearbook": {
+    "url": "https://anuario.ine.gob.bo/2023/documentos/201/20112.xlsx",
+    "table": "2.01.12",
+    "sha256": "8cd56bb4ea1c4e4d7dab83e5f1f51acc5949513751c7bebac4a771fbf8eebaa4"
+  },
+  "source_census": {
+    "url": "https://nimbus.ine.gob.bo/index.php/s/EgN8PPYD8Y4Rdig/download",
+    "table": "3.09.02.02",
+    "sha256": "fb0fd5af8614bf0ce25ed962d2b8048b39b58839e06a631bf6e7e2b1c2a470f7"
+  },
+  "gdo_pinned_base": "https://raw.githubusercontent.com/quarcs-lab/gdo4bolivia/9a2e2b536b743700a69ca8b682ba57feb9bf7e26/",
+  "gdo_inputs_sha256": {
+    "data/map343/sdg.csv": "675179c3770f89429eb4df07b931434a869ad41b5810f3f786836dc05cc8b99c",
+    "geo/units.csv": "345e64bb9ebc34a3ff070b8eab58c934b8583abf7fd933800083f43c9b8ab004",
+    "geo/crosswalks/map343__department.csv": "a9ea4d233a86a21d1af8eb85cf4907181ed38276fe9d2dbe11ec3546864df52a",
+    "geo/crosswalks/map343__province.csv": "02efa7fc4359329115126161fe62ad8ad55795cdad208ab108ac1dbc9fff09d4",
+    "geo/crosswalks/map339__map343.csv": "6288e75cd221a7266261c065a4dd06576d0da0fcf72d7de247d4bb449a40ebe4"
+  },
+  "recipe": "tools/build_bolivia_population.py",
+  "projection_method": {
+    "ine_yearbook_projection": "333 roster matches; INE annual population unchanged, no polygon equivalence asserted",
+    "census_share_interpolated": "10 units in four groups; allocate summed historical projections by linear 2012-2024 group census shares, integer largest remainder with geo_id tie-break"
+  },
+  "census_2012_separate": "Official tabulation on matched map343 roster; present in year 2012 only",
+  "annual_projected_total_people": [
+    10356978,
+    10521247,
+    10685994,
+    10851103,
+    11016438,
+    11181861,
+    11347241,
+    11512468,
+    11677406,
+    11841955,
+    12006031
+  ],
+  "census_2012_total_people": 10059856,
+  "method_unit_counts": {
+    "ine_yearbook_projection": 333,
+    "census_share_interpolated": 10
+  },
+  "split_groups": [
+    {
+      "historical_geo_ids": [
+        "BO-02-12-02"
+      ],
+      "successor_geo_id": "BO-02-12-04",
+      "census_anchor_people_by_geo_id": {
+        "2012": {
+          "BO-02-12-02": 19864,
+          "BO-02-12-04": 7036
+        },
+        "2024": {
+          "BO-02-12-02": 19896,
+          "BO-02-12-04": 8056
+        }
+      },
+      "annual_projection_total_people": [
+        27988,
+        28070,
+        28145,
+        28212,
+        28270,
+        28318,
+        28358,
+        28387,
+        28408,
+        28417,
+        28417
+      ]
+    },
+    {
+      "historical_geo_ids": [
+        "BO-03-06-01",
+        "BO-03-08-02"
+      ],
+      "successor_geo_id": "BO-03-09-01",
+      "census_anchor_people_by_geo_id": {
+        "2012": {
+          "BO-03-06-01": 19252,
+          "BO-03-08-02": 17069,
+          "BO-03-09-01": 3232
+        },
+        "2024": {
+          "BO-03-06-01": 21584,
+          "BO-03-08-02": 18088,
+          "BO-03-09-01": 3973
+        }
+      },
+      "annual_projection_total_people": [
+        34917,
+        35359,
+        35811,
+        36272,
+        36736,
+        37210,
+        37692,
+        38180,
+        38677,
+        39180,
+        39690
+      ]
+    },
+    {
+      "historical_geo_ids": [
+        "BO-07-02-01",
+        "BO-07-02-02"
+      ],
+      "successor_geo_id": "BO-07-02-04",
+      "census_anchor_people_by_geo_id": {
+        "2012": {
+          "BO-07-02-01": 10866,
+          "BO-07-02-02": 8854,
+          "BO-07-02-04": 5935
+        },
+        "2024": {
+          "BO-07-02-01": 14654,
+          "BO-07-02-02": 7845,
+          "BO-07-02-04": 5819
+        }
+      },
+      "annual_projection_total_people": [
+        24291,
+        24475,
+        24666,
+        24869,
+        25081,
+        25304,
+        25540,
+        25787,
+        26044,
+        26312,
+        26592
+      ]
+    },
+    {
+      "historical_geo_ids": [
+        "BO-07-04-01"
+      ],
+      "successor_geo_id": "BO-07-04-05",
+      "census_anchor_people_by_geo_id": {
+        "2012": {
+          "BO-07-04-01": 15260,
+          "BO-07-04-05": 19939
+        },
+        "2024": {
+          "BO-07-04-01": 16363,
+          "BO-07-04-05": 21011
+        }
+      },
+      "annual_projection_total_people": [
+        34722,
+        34828,
+        34939,
+        35059,
+        35185,
+        35320,
+        35463,
+        35614,
+        35771,
+        35935,
+        36106
+      ]
+    }
+  ],
+  "csv_sha256": "e8f25cb572bbec0f7699a55580b37171aecf6edcc7583265d65a10440c4c6158"
+}
