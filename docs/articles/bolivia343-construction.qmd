@@ -1,0 +1,267 @@
+---
+title: "Building the Bolivia 343 municipal GDP panel"
+subtitle: "From nationally anchored 0.25° estimates to fixed municipal boundaries"
+execute:
+  enabled: false
+---
+
+[Open the construction notebook in Colab](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/bolivia343_construction.ipynb) · [Notebook source](https://github.com/quarcs-lab/geometrics/blob/main/notebooks/bolivia343_construction.ipynb)
+
+`geometrics.data.load_bolivia343()` returns **343 polygons and a 2012–2022
+municipality/TIOC panel**. GDP is modeled and allocated by corrected grid
+area. The default GDP per person now divides by **INE annual population
+projections harmonized to map343**, not the gridded model population. This
+is a denominator change, not a new survey or official municipal GDP. The same modern
+geography is used for every year. It answers “how much of the gridded estimate
+falls in today's footprint?” and does not imply every unit legally existed in
+that year. `load_bolivia_harmonized("adm1")`, `load_bolivia_harmonized("adm2")` and
+`load_bolivia_harmonized("adm3")` give the consistent levels on this backbone.
+The older GADM loaders are retained for historical reproducibility.
+
+## Inputs and units
+
+| Input | Role |
+|---|---|
+| Rossi-Hansberg and Zhang, [Local GDP estimates around the world](https://doi.org/10.1016/j.jue.2026.103871), via the [BFI Data Studio](https://bfidatastudio.org/gdp) | Model-estimated GDP and population on a 0.25° grid, 2012–2022. In the Bolivia `0_05` input, flagged low-density cells have zero estimated GDP, not necessarily zero population. |
+| [Penn World Table 11.0](https://www.rug.nl/ggdc/productivity/pwt/) | The existing geometrics GRID input is scaled by year to `rgdpo` (million 2021 US dollars at chained PPPs) and `pop` (million people). ADM3 redistributes these values geographically; it does not estimate new scaling factors. The GDP anchor is output-side real GDP at chained PPPs, not the `rgdpna` series based on national-accounts growth rates. |
+| [INE Statistical Yearbook, table 2.01.12](https://anuario.ine.gob.bo/2023/documentos/201/20112.xlsx) | All-sex population projections, 2012–2022, used for the default per-capita denominator after a fixed-geography crosswalk. |
+| [INE census counts, table 3.09.02.02](https://nimbus.ine.gob.bo/index.php/s/EgN8PPYD8Y4Rdig) | An exact 2012 census denominator for a separate ratio; counts from 2012 and 2024 also supply allocation shares for a small set of split units. |
+| [SDSN Bolivia, Límites Municipales Bolivia 2025](https://sdsnbolivia.org/datos-espaciales/), accessed through the [GeoDevelopment Observatory of Bolivia](https://quarcs-lab.github.io/gdo4bolivia/) | Fixed 343-unit geography and Observatory IDs. The Observatory documents that it uses and shares this map with SDSN Bolivia's permission; the source is not represented as openly licensed. |
+
+The GRID snapshot is pinned to geometrics commit
+`c23a78de67db2a72c3243c43887927675b685c7c`; the
+[municipal map](https://github.com/quarcs-lab/gdo4bolivia/blob/9a2e2b536b743700a69ca8b682ba57feb9bf7e26/geo/boundaries/map343.geojson)
+is pinned to Observatory commit `9a2e2b536b743700a69ca8b682ba57feb9bf7e26`. The code checks the
+expected hashes rather than trusting a moving branch or a replacement file
+with the same name. This repository does not rehost the municipal map. Review
+the source terms before redistributing municipal geometry (including derived
+maps/geometry where applicable); the software license is not a data license.
+The notebook builds to local runtime storage rather than uploading results.
+The boundaries are statistical reference geography, not authority for legal
+limits. See also the [official census portal's cartographic note](https://cpv2024.ine.gob.bo/).
+
+## The grid origin was corrected
+
+The [publisher's April 2026 data definitions](https://bfidatastudio.org/wp-content/uploads/2026/05/Data-Definition.pdf)
+specify the **southwest (bottom-left) corner**, not the center, for each
+`longitude, latitude` pair. The original geometrics GRID polygons treated
+those fields as centers, shifting their full squares 0.125° south and west.
+The harmonized builder reconstructs each full square as
+`[longitude, longitude + 0.25] × [latitude, latitude + 0.25]`; it does not
+change the source GDP/population values or use census counts to choose an
+offset. At international borders and large inland waters, the publisher's
+actual source polygons may be clipped; this build reconstructs the full
+envelopes, not those exact clipped shapes. Do not reuse the archived
+legacy GeoPackage as corrected geometry.
+
+## What the overlay does
+
+The allocation uses **area overlap**, not the fraction of residents, lights
+or firms known to be on each side of a boundary. For each grid cell, intersect
+its polygon with the fixed municipal polygons in an equal-area coordinate
+system (EPSG:6933). Ignore overlaps of 1 m² or less so a touch or a
+numerical sliver does not count as support. Distribute its GDP and population to intersecting units in proportion
+to their share of covered cell area. Denote intersection area by `a[i,j]`.
+For a covered cell `i`, the conditional weights are
+`w[i,j] = a[i,j] / sum_j(a[i,j])`. For each year, multiply each cell's
+already anchored GDP and GRID population by these weights and sum by
+municipal ID. Neither this sum nor the GDP/cell weights change when we
+introduce the INE population denominator below. Never aggregate or allocate
+precomputed GDP per capita or its logarithm.
+
+The denominator is covered area, not the whole square. This conserves the
+mass of **covered cells only**. Along borders it can allocate a whole estimate
+from a small sliver of overlap. Cells with no qualifying overlap are left
+unassigned and accounted for in the ledger, not snapped to a municipality or
+redistributed. With these inputs, 6 of 1,603 cells are unassigned. The excluded
+share is below **0.00017% of GDP** and **0.00014% of population** in every year.
+Every municipality has support and the corrected grid envelopes cover
+99.999% of the total municipal polygon area. That fraction measures geometry,
+not residents or economic activity captured.
+
+Two sensitivity runs change the grid allocation rule. Their population
+totals and GDP-per-capita ratios use GRID population, not INE projections:
+
+| 2022 allocation rule | GRID GDP unassigned | GRID population unassigned | Municipal GDP per capita available |
+|---|---:|---:|---:|
+| Covered-area share (main) | 0.000157% | 0.000117% | 343 |
+| Full square denominator | 1.56% | 2.03% | 343 |
+| Centroid, no nearest fallback | 1.37% | 1.75% | 277 |
+
+For example, if A covers 25% of a cell and B 50%, the main method gives A
+one-third and B two-thirds. The full-square method gives A one-quarter and B
+one-half, leaving one-quarter unassigned. The centroid method assigns all of
+a cell to the unit containing its center, or none if no unit contains it.
+In 2022 GDP-per-capita rankings, full-square and main agree closely (Spearman
+**0.996**), but the centroid comparison yields **0.886** on the 277 common
+units. For 18 of those 277, centroid GDP per capita differs by more than 10%
+from the main estimate. In Puerto Quijarro, for example, the full-square rule
+changes GDP per capita from about **9,749** to **7,764** 2021 PPP US dollars. These are allocation
+comparisons, not uncertainty bounds.
+
+A small municipality may occupy only a fraction of one grid cell. An estimate
+on that footprint does not provide independently observed within-cell detail.
+Fixed polygons do not backcast legal history, area weights are no substitute
+for a validated population/production surface, and the source's cell-level
+tree quantiles cannot be summed into municipal uncertainty intervals.
+
+## Which population belongs under GDP?
+
+The annual INE yearbook covers **339 historical municipalities**. For
+**333** modern units, a one-to-one roster match lets us use the annual
+source projections as published. It does not establish identical historic
+polygon edges. For the other **10** units, group the old municipalities
+together where new units split from them. Pool the old municipalities'
+published totals year by year, then divide each pool using the modern
+units' within-group census shares. We interpolate those shares linearly
+between 2012 and 2024 and convert to whole people without changing the
+group total. Read `pop_ine_method` for `ine_yearbook_projection` (direct)
+or `census_share_interpolated` (split). The latter is a retrospective
+geographic harmonization,
+not directly published INE municipal projections.
+
+| Ratio | Denominator | Use |
+|---|---|---|
+| `gdppc` and `ln_gdppc` | `pop_ine`, INE projection in people | Default consistent annual series 2012–2022 |
+| `gdppc_census_2012` | `pop_census_2012`, census count in people | Exact-year census denominator, 2012 only |
+| `gdppc_pwt` and `ln_gdppc_pwt` | Original `pop_pwt`, GRID-modeled population in million people | Compare with the previous denominator |
+
+All three ratios use the same GDP numerator. To divide by a population
+in people, multiply `gdp_pwt` (millions of 2021 PPP US dollars) by
+1 million first. GDP per capita is defined for positive populations;
+logs are defined for positive ratios. Departments and provinces sum
+the child GDP and population columns before calculating ratios. The
+coarser estimates are rollups, not independent source publications, and
+`n_population_split_units` identifies parents containing split units.
+One linked Beni group crosses province boundaries.
+
+The new 2012 annual projection differs from the census by **7.91%** at
+the median municipality, versus **38.24%** for the corrected GRID population.
+This is census agreement, not an independent holdout: [INE Revisión 2020,
+§7(d)](https://siip.produccion.gob.bo/noticias/files/2021-934cb-1estimaINE.pdf#page=44) already uses the 2012 census to
+adjust its municipal shares. The ten split estimates additionally use
+census shares. [INE's newer municipal/TIOC series](https://www.ine.gob.bo/index.php/censos-y-proyecciones-de-poblacion-sociales/)
+starts in 2024; its 2000–2050 national history does not replace the earlier
+municipal series. The split is retrospective, using 2024 census
+information; do not treat it as a contemporaneously available input to a
+2012–2022 forecast or pre-treatment design.
+
+This denominator switch does not move production. No building-surface
+or gas-volume pilot weights are used by default. The ratio is still a
+modeled measure and should not be used as official municipal GDP.
+
+## Rebuild and inspect
+
+Run the [notebook](https://colab.research.google.com/github/quarcs-lab/geometrics/blob/main/notebooks/bolivia343_construction.ipynb)
+from the top, or in a geometrics clone run:
+
+```bash
+git rev-parse HEAD
+uv run --locked --no-dev python tools/build_bolivia_adm3.py \
+  --datasets-root datasets/BOL-005popAdj-PWTscaled \
+  --output /tmp/geometrics-bolivia343
+```
+
+The Colab link on `main` is for discovery after merge. A notebook opened
+from the implementation branch can use branch code before merge. Record
+the full printed commit for your run and use it for an exact replay. The loader
+constructs the result from pinned source files; it is not a download of a
+premade municipal GDP file. An exact local copy of the municipal input can
+be supplied via `--map343 /path/to/map343.geojson`; its checksum is still
+verified. The build writes two panel CSVs: `bolivia_adm3_ine.csv` matches
+the public loader, whereas `bolivia_adm3.csv` is the grid-only intermediate
+whose `gdppc` still refers to modeled PWT population. Keep the intermediate
+for grid-based validation below. The build also writes the local GeoPackage,
+`allocation_ledger.csv`, `allocation_cell_weights.csv`, `sensitivity.csv` and
+`validation.json` with the input hashes and geometry diagnostics.
+
+```python
+import geometrics as gm
+
+gdf, df, dictionary = gm.data.load_bolivia343()
+df = gm.set_labels(df, dictionary, set_panel=True)
+gdf2, provinces, province_dictionary = gm.data.load_bolivia_harmonized("adm2")
+```
+
+## Three different checks
+
+1. **Integrity:** Check the 343 IDs, the geometry-to-panel key set, the
+   343 × 11 municipality-year grid, valid geometry and support, nonnegative
+   additive totals, and GDP per capita defined only for positive population.
+2. **Accounting:** Re-sum municipal GDP and **GRID** population by year and
+   compare with the original GRID totals less the disclosed unassigned
+   residual. Separately check that the **INE** denominator sums to the
+   original INE projection totals. The two population concepts do not have
+   to match. Neither check validates municipal GDP.
+3. **External checks and sensitivity:** Compare 2022 model departmental GDP
+   shares with [INE departmental accounts, table D.10.1.2](https://www.ine.gob.bo/referencia2017/pib_departamental.html);
+   this is an independent sanity check on broad spatial patterns, not a
+   like-for-like validation of PPP real GDP (INE's comparison table is in
+   current prices) or municipal accuracy. The [INE census
+   tables](https://www.ine.gob.bo/index.php/estadisticas-sociales/poblacion-censo/)
+   benchmark the previous GRID population in 2012. They did not select the
+   corrected area-GDP allocation. The 2012 census informs both the underlying
+   INE projections and the new population splits; 2024 counts also inform
+   the splits. Neither endpoint is a held-out test of those estimates. Do not infer
+   that the upstream LandScan product is independent of all census information.
+
+In the optional 2022 benchmark, Santa Cruz accounts for **24.39%** of the
+model's municipal GDP when aggregated to departments, versus **32.23%** in
+the INE nominal accounts. La Paz goes the other way (**32.69%** vs **26.17%**).
+Cochabamba's shares are **20.08%** and **15.08%**, respectively. Across nine
+departments, the rank correlation is **0.97**, with a mean absolute share
+difference of **2.64 percentage points**. INE marks 2022 preliminary. These
+differences are visible even at department scale, and can reflect both the
+underlying model and differing price concepts. They do not establish how
+accurately the 0.25° cells distribute GDP within small municipalities.
+
+
+The GDP numerator still has substantial uncertainty. In a separate official
+departmental volume check for 2017–2022, the modeled and INE cumulative
+GDP growth ranks correlated **0.383**. In 2019 the corrected area numerator
+and FAM–AR-LAT GDP estimates, divided by the same INE population and
+coarsened to 337 common municipal groups, had rank agreement of **0.214**.
+FAM is another model, not municipal accounts. These checks do not establish
+which estimate is more accurate. The population improvement should not be
+read as a validation of the GDP numerator.
+
+
+## Why retain the previous population denominator as a diagnostic?
+
+The [pinned geo4bolivia/GDO SDG population series](https://github.com/quarcs-lab/gdo4bolivia/blob/9a2e2b536b743700a69ca8b682ba57feb9bf7e26/docs/datasets/sdg.md)
+uses the same map343 geography. Its 2012 counts, including four footprints
+created as administrative units later, match all 343 municipal/TIOC records
+in [INE table 3.09.02.02](https://nimbus.ine.gob.bo/index.php/s/EgN8PPYD8Y4Rdig)
+after matching nested names and verifying the GDO keys. GDO parent crosswalks
+give 113 provinces and nine departments. The 2024 census is outside the GDP
+panel and is not a 2022 observation; the GDO and INE 2024 Huarina values differ
+(8,279 vs 8,679).
+
+| Scale | Units | Population rank correlation: old → corrected | Median absolute percentage error: old → corrected |
+|---|---:|---:|---:|
+| Municipal / TIOC | 343 | 0.649 → 0.822 | 54.05% → 38.24% |
+| Province | 113 | 0.787 → 0.944 | 46.22% → 19.54% |
+| Department | 9 | 0.983 → 1.000 | 9.29% → 4.94% |
+
+For GRID population, the coordinate correction markedly improves spatial
+agreement, but **227 of 343** municipal populations remain more than 25%
+away from the census.
+For example, the corrected counts are about **856,422** for Santa Cruz de la
+Sierra and **428,031** for adjacent La Guardia, versus **1,444,425** and
+**89,284** in INE. The corrected national aggregate is **10.52 million**
+versus **10.06 million** observed, consistent with different population
+anchors. Municipal coverage, a balanced accounting ledger and a good
+department rank correlation do not make municipal GDP per capita reliable.
+
+Reproduce with the notebook or the separate script. The script reads the
+pinned GDO and INE files, checks their hashes and writes local benchmark
+tables without publishing the geometry:
+
+```bash
+uv run --locked --with openpyxl python tools/validate_bolivia_census.py \
+  --adm3 /tmp/geometrics-bolivia343/bolivia_adm3.csv \
+  --out /tmp/geometrics-bolivia343-census
+```
+
+For the named projection groups see the [ADM3 construction record](https://github.com/quarcs-lab/geometrics/blob/main/datasets/BOL-005popAdj-PWTscaled/ADM3/README.md).
+See the [ADM3 build verification and checks](https://github.com/quarcs-lab/geometrics/blob/main/datasets/BOL-005popAdj-PWTscaled/ADM3/VERIFICATION.md).

@@ -1,0 +1,22 @@
+var_name,var_def,label,type,role,can_be_na
+geo_id,Stable GeoDevelopment Observatory identifier for the fixed 2025 map343 municipality or Indigenous autonomy.,Map343 ID,entity,,False
+name,Name as published in the pinned map343 source.,Municipal unit,factor,entity_name,False
+year,Calendar year of the gridded estimate on retrospective fixed 2025 boundaries.,Year,time,,False
+gdp_pwt,Estimated GDP allocated from the PWT 11.0-anchored source grid using fixed within-cell municipal overlap shares. Does not include unmatched source cells.,GDP (million 2021 PPP US$),numeric,,True
+pop_ine,INE annual projection in persons on the fixed map343 geography. Linked historical groups use census-share interpolation.,Harmonized INE projected population (persons),numeric,,False
+gdppc,Area-allocated GDP divided by annual harmonized INE population. Not observed municipal accounts.,Estimated GDP per capita (2021 PPP US$),numeric,,True
+ln_gdppc,Natural logarithm of estimated GDP per capita when positive.,Log GDP per capita,numeric,outcome,True
+pop_ine_method,Denominator provenance: ine_yearbook_projection for a one-to-one historical roster match or census_share_interpolated for a split within a linked historical group.,INE denominator method,factor,,False
+pop_ine_group,Historical map339 ID or a plus-separated group of IDs whose annual INE projection is conserved.,Historical projection group,factor,,False
+pop_census_2012,2012 INE census resident count tabulated on fixed map343 boundaries. Only populated for year 2012.,2012 census population (persons),numeric,,True
+gdppc_census_2012,Estimated GDP in 2012 divided by census residents rather than the annual projection. Only populated for year 2012; not part of the annual GDP per capita series.,GDP per 2012 census resident (2021 PPP US$),numeric,,True
+pop_pwt,Estimated population allocated from the PWT 11.0-anchored source grid using the same fixed overlap shares as GDP. Does not include unmatched source cells.,Population (millions),numeric,,True
+gdppc_pwt,Previous diagnostic ratio of area-allocated GDP to area-allocated PWT grid population; not the default GDP per capita.,GDP per modeled PWT resident (2021 PPP US$),numeric,,True
+ln_gdppc_pwt,Natural logarithm of GDP per modeled PWT resident when positive.,Log GDP per modeled PWT resident,numeric,,True
+coverage_fraction,Share of municipal polygon area covered by contributing source grid cells before allocation.,Municipal area covered by source grid,numeric,,False
+coverage_status,Geometric source-grid support classified independently of GDP censoring.,Source-grid coverage status,factor,,False
+n_source_cells,Number of source grid cells with positive overlap included in the estimate.,Contributing cells,numeric,,False
+n_censored_cells,Number of contributing cells whose GDP is censored by the source in this year.,Contributing GDP-censored cells,numeric,,False
+censored_area_fraction,Fraction of covered municipal area coming from GDP-censored source cells in this year.,Covered area from GDP-censored cells,numeric,,True
+censored_pop_fraction,Fraction of allocated municipal population originating in GDP-censored source cells when municipal population is positive.,Allocated population from GDP-censored cells,numeric,,True
+censor_status,Source GDP censoring status among contributing cells. Censoring of GDP does not imply zero population.,Source GDP censoring status,factor,,False

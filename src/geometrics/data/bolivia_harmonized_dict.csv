@@ -1,0 +1,16 @@
+var_name,var_def,label,type,role,can_be_na
+geo_id,GeoDevelopment Observatory department or province identifier on the fixed 2025 hierarchy.,Observatory ID,entity,,False
+name,Name in the pinned Observatory units registry.,Administrative unit,factor,entity_name,False
+year,Year of the modeled GDP and population on fixed 2025 boundaries.,Year,time,,False
+gdp_pwt,Sum of modeled municipal GDP over supported child units. The unassigned source ledger is excluded.,GDP (million 2021 PPP US$),numeric,,True
+pop_ine,Sum of annual harmonized INE projections over all map343 children; some child populations may use census-share interpolation.,Harmonized INE projected population (persons),numeric,,False
+gdppc,Ratio of modeled GDP to summed harmonized INE population. Missing if any child lacks GDP support.,Estimated GDP per capita (2021 PPP US$),numeric,,True
+ln_gdppc,Natural logarithm of GDP per capita when positive.,Log GDP per capita,numeric,outcome,True
+pop_census_2012,Sum of 2012 INE census residents over the fixed map343 children. Only populated for year 2012.,2012 census population (persons),numeric,,True
+gdppc_census_2012,Estimated GDP in 2012 divided by census residents rather than the annual projection. Only populated for year 2012; not part of the annual GDP per capita series.,GDP per 2012 census resident (2021 PPP US$),numeric,,True
+pop_pwt,Sum of modeled municipal population over supported child units. The unassigned source ledger is excluded.,Population (millions),numeric,,True
+gdppc_pwt,Previous diagnostic ratio of area-allocated GDP to area-allocated PWT grid population; not the default GDP per capita.,GDP per modeled PWT resident (2021 PPP US$),numeric,,True
+ln_gdppc_pwt,Natural logarithm of GDP per modeled PWT resident when positive.,Log GDP per modeled PWT resident,numeric,,True
+n_municipal_units,Number of child units in the fixed geography including units with no modeled totals.,Child municipal-level units,numeric,,False
+n_supported_municipal_units,Number of child units for which the builder produced GDP and population estimates. This is not a land-area coverage measure.,Child units with estimates,numeric,,False
+n_population_split_units,Number of children whose annual populations are split within a linked historical group using interpolated census shares.,Children with interpolated population splits,numeric,,False

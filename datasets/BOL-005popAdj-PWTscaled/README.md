@@ -6,8 +6,8 @@ Rossi-Hansberg & Zhang (2026) — using their **most aggressive low-population-d
 exactly equal Penn World Table 11.0** (`rgdpo`, output-side real GDP at chained PPPs, and `pop`),
 and GDP per capita and its natural logarithm are then derived. The collection is delivered at four
 levels of analysis — country (**ADM0**), department (**ADM1**), province (**ADM2**), and the raw
-**GRID** cells — for **2012–2022**, in **EPSG:4326**. Rescaling re-bases the otherwise
-arbitrary model scale into **interpretable 2021 PPP US dollars** (national GDP per capita reads as
+**GRID** cells — for **2012–2022**, in **EPSG:4326**. Rescaling converts the source's billions to millions and aligns them to
+PWT's national levels in **2021 PPP US dollars** (national GDP per capita reads as
 **\$7,082 per person in 2012**) while preserving the underlying model's relative spatial
 distribution of GDP and population exactly.
 
@@ -19,6 +19,25 @@ distribution of GDP and population exactly.
 > `README.md` and `<level>_data_def.csv` (an [expdpy](https://cmg777.github.io/expdpy) `df_def`
 > dictionary, paired with a long-form `<level>.csv` panel); numerical validation lives in
 > [`VERIFICATION.md`](./VERIFICATION.md).
+
+### Municipal extension (ADM3, 343 units)
+
+[ADM3 construction documentation](ADM3/README.md) extends the original
+collection with estimated municipal GDP and population for 2012–2022 on
+the fixed SDSN Bolivia 2025 map. It reallocates original grid-cell totals
+by municipal overlap rather than dividing GADM province totals. The
+[ADM3 validation record](ADM3/VERIFICATION.md) explains the unassigned
+ledger and allocation sensitivity. The GRID inputs still match PWT;
+the municipal rows alone exclude unmatched cell mass. The raw files are
+unchanged. **Use the corrected grid loader and the harmonized series for
+new spatial analysis.** The archived GRID
+GeoPackage centered the square on those coordinates, shifting the
+footprints 0.125° west and south. The historical GADM ADM1 and ADM2
+allocations used that placement and are retained for replication only.
+`load_bolivia_grid()` now builds the source-correct envelopes;
+`load_bolivia_harmonized(level)`, with `"adm1"`, `"adm2"`, or `"adm3"`, uses the same
+corrected overlap allocation and fixed Observatory hierarchy at each
+scale. See [the cross-scale audit](ADM3/VERIFICATION.md).
 
 ---
 
@@ -46,12 +65,12 @@ GDP at chained PPPs (`rgdpo`) and population from Penn World Table 11.0 (Feenstr
 
 ## 2. Overview and purpose
 
-The published cell-level GDP values are reported on the model's **internally-consistent but
-arbitrary scale**: summed over Bolivia they total only ≈ 85–117 (in the `const_2021_PPP` column),
-so the absolute numbers cannot be read as money and per-capita values are not directly
-interpretable. This product solves that by **anchoring the cells to an authoritative national
-benchmark** — Penn World Table 11.0 — using a transparent, conservative **proportional rescaling
-(raking)**. After rescaling:
+The [provider's April 2026 data definitions](https://bfidatastudio.org/wp-content/uploads/2026/05/Data-Definition.pdf)
+report cell GDP in **billions of 2021 PPP dollars**, not an arbitrary
+unit. The Bolivian sum is approximately 85–117 billion in the source.
+Here, GDP is converted to millions, population from persons to millions,
+and both are benchmarked proportionally to **Penn World Table 11.0**.
+After rescaling:
 
 - the **sum of all grid cells' GDP** in each year equals PWT `rgdpo` (millions of 2021 PPP US\$);
 - the **sum of all grid cells' population** equals PWT `pop` (millions of persons);
@@ -207,11 +226,9 @@ followed by aggregation. Implemented in **`code/build_bolivia_pwtscaled.py`**.
 
 ### 5.1 The problem it solves
 
-The cells' `predicted_GCP_const_2021_PPP` values are internally consistent (relative magnitudes are
-meaningful) but on an **arbitrary absolute scale** — Bolivia's national sum is ≈ 85–117 rather than
-the ≈ 75,000–114,000 (millions of 2021 PPP US\$) that the economy actually produces. We want to
-re-base the cells to a recognized national figure **without disturbing their relative spatial
-distribution**. Proportional rescaling to a control total is exactly that operation.
+The source uses billions of constant 2021 PPP dollars. Harmonizing to
+PWT changes the unit and the national benchmark, but not the relative
+location of GDP across the source cells. The ratios of modeled cell GDP values are not re-estimated by this proportional rescaling.
 
 ### 5.2 Formal definition
 
@@ -243,7 +260,7 @@ those are GDP-valued (quantiles are scale-equivariant; a standard deviation scal
 
 **Magnitudes (Bolivia).** Because `pop_scale` converts *persons* to *millions of persons*, it is
 ≈ 1.0×10⁻⁶; `gdp_scale` ≈ 873–981 absorbs both the unit change and the gap between the cells'
-arbitrary scale and PWT's level. Their ratio `k_y = gdp_scale/pop_scale ≈ 8.6×10⁸ … 9.7×10⁸` is the
+original national anchor and PWT's level. Their ratio `k_y = gdp_scale/pop_scale ≈ 8.6×10⁸ … 9.7×10⁸` is the
 single constant by which every cell's GDP-per-capita is multiplied (see §5.4). Per-year values are
 tabulated in [`VERIFICATION.md`](./VERIFICATION.md).
 
@@ -303,7 +320,7 @@ A fifth, structural invariant follows from cells nesting in exactly one region a
 
 ### 5.5 What the rescaling does and does not do
 
-- **Does:** re-base the *level* of the cells from the arbitrary model scale into PWT's units
+- **Does:** re-base the *level* of the cells from the published source units into PWT's units
   (millions of 2021 PPP US\$ for GDP; millions of persons for population) and re-anchor the national
   total to PWT `rgdpo`/`pop`. The per-year factor simultaneously absorbs the unit convention and the
   difference between the cells' original national-accounts anchor (IMF WEO) and PWT.
@@ -388,7 +405,7 @@ Full machine-readable dictionaries are in each subfolder's `<level>_data_def.csv
 | Column | Meaning |
 |---|---|
 | `cell_id, subcell_id, subcell_id_0_25` | source cell identifiers (the latter two complete the key) |
-| `iso, year, longitude, latitude` | country (BOL), year, cell centroid (EPSG:4326) |
+| `iso, year, longitude, latitude` | country (BOL), year, full-cell southwest corner (EPSG:4326) |
 | `predicted_GCP_const_2021_PPP` | **provenance:** original model GCP (model scale, const 2021 PPP) |
 | `pop_cell` | **provenance:** original cell population (persons) |
 | `cell_GDPC_const_2021_PPP` | **provenance:** original model GDP per capita (model scale) |
@@ -447,7 +464,7 @@ and writes the results, with the per-year scale-factor table, to
 - **Uncertainty is cell-level and not aggregated.** Region-level GDP carries point estimates only;
   proper region-level uncertainty would require per-tree predictions that are not in the published
   cell files. The grid's `gcp_pwt_q05/q95/tree_sd` must not be summed across cells.
-- **Centroid membership.** A ~28 km cell straddling a border is assigned wholly to one region; 132
+- **Legacy centroid membership.** These archived assignments used the offset geometry. A ~28 km cell straddling a border is assigned wholly to one region; 132
   border/lake cells are assigned by nearest-region fallback (`adm1_assign`/`adm2_assign = nearest`).
 - **Five small provinces carry no cell (ADM2 only).** Because assignment is **centroid-in-polygon**
   — a 0.25° cell (~27 km, ~740 km²) goes entirely to whichever province contains its centroid — the
@@ -461,7 +478,7 @@ and writes the results, with the per-year scale-factor table, to
   unaffected. This includes **Cercado, the urban province containing the city of Cochabamba**, so
   the artifact can affect a populous small province, not only sparsely-populated land (the
   Cochabamba-city cell is centroid-assigned to the adjacent Capinota province). It is a discretization
-  effect of the 0.25° grid, not missing data; a finer-resolution input would resolve these provinces.
+  effect of the 0.25° grid, not an observed zero. See the corrected harmonized series for the fixed 2025 geography.
 - **No independent subnational benchmark.** PWT is national only, so the *level* anchoring is
   validated at the country level; department/province levels inherit the national anchor and the
   model's relative shares — there is no province-level ground truth to validate against.

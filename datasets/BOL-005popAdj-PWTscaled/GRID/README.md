@@ -7,6 +7,20 @@ PWT-anchored local GDP for **Bolivia** at the **GRID** level, 2012–2022 — th
 0.25-degree gridded estimates **rescaled so national totals equal Penn World Table 11.0**, in
 interpretable 2021 PPP US$. This dataset holds **1,603 cells × 11 years = 17,633 rows**.
 
+## Coordinate correction
+
+The [April 2026 source data definitions](https://bfidatastudio.org/wp-content/uploads/2026/05/Data-Definition.pdf)
+and [authors' grid implementation](https://github.com/jialingzhang0730/Local_GDP_Estimates_Around_the_World/blob/329eb0af15029b9548a7046369157fa91c183906/step3_obtain_cell_level_GDP_and_predictors_data/4_get_true_cell_GDP.R#L161-L171)
+show that `longitude` and `latitude` are southwest corners. The archived
+GeoPackage in this directory was built as if they were centers, shifting
+its footprints 0.125° west and south. It is retained to reproduce legacy
+results, not as corrected geography. `load_bolivia_grid()` returns exact
+full squares reconstructed from the southwest coordinates. These are not
+the provider's country-clipped border polygons. The stored GADM keys and
+nearest/within flags date to the archival placement; do not use them as
+parent IDs of the corrected geometry. For new cross-scale work see the
+[ADM3 construction](../ADM3/README.md).
+
 ## Method
 The published 0.25-degree cells (constant 2021 PPP, `0_05` low-pop-density censoring) are **rescaled (raked) so their national totals match Penn World Table 11.0**. For each year, two national factors are applied uniformly to every cell:
 
@@ -46,8 +60,8 @@ Interpretable **PWT levels**: GDP in **millions of 2021 PPP US$**, population in
 | `subcell_id_0_25` | entity | · | Source 0.25-degree subcell identifier. Part of the compound cell entity key. |
 | `iso` | factor | · | ISO3 country code (GADM GID_0); HKG/MAC/XKX restored to the cell-data codes. For region panels it is the parent country and part of the compound entity key. |
 | `year` | time | · | Calendar year of the estimate (2012-2022). |
-| `longitude` | numeric | · | Cell centroid longitude (degrees, EPSG:4326). |
-| `latitude` | numeric | · | Cell centroid latitude (degrees, EPSG:4326). |
+| `longitude` | numeric | · | Full-cell southwest corner longitude (degrees, EPSG:4326). |
+| `latitude` | numeric | · | Full-cell southwest corner latitude (degrees, EPSG:4326). |
 | `predicted_GCP_const_2021_PPP` | numeric | · | Predicted cell GDP total (Gross Cell Product), const 2021 PPP. |
 | `pop_cell` | numeric | · | Population of the cell (persons). |
 | `cell_GDPC_const_2021_PPP` | numeric | · | Cell GDP per capita, const 2021 PPP (= GCP / pop_cell). |
@@ -75,7 +89,7 @@ Interpretable **PWT levels**: GDP in **millions of 2021 PPP US$**, population in
 The same dictionary is in `bolivia_grid_cells_data_def.csv` (expdpy `df_def`: `var_name, var_def, label, type, role, can_be_na`).
 
 ## Nearest-region fallback — what it is and how to read it
-Each 0.25-degree cell is assigned to the GADM region whose polygon **contains its centroid** (flagged `within`). A cell whose centroid falls outside every region of the country — typically a **coastal, island, or border** cell, or one over water near the coast — is instead **snapped to the nearest region of the same country**, measured in a local equidistant (metre) projection, and flagged `nearest`. The `adm1_assign` / `adm2_assign` flags ('within' vs 'nearest') records this; about **8%** of this dataset's cells were placed by the fallback.
+In the archived build, each 0.25-degree cell was assigned using its legacy offset location (flagged `within`). A cell whose centroid falls outside every region of the country — typically a **coastal, island, or border** cell, or one over water near the coast — is instead **snapped to the nearest region of the same country**, measured in a local equidistant (metre) projection, and flagged `nearest`. The `adm1_assign` / `adm2_assign` flags ('within' vs 'nearest') records this; about **8%** of this dataset's cells were placed by the fallback.
 
 **How to interpret it.** Read it as a *confidence signal*: a region (or cell) with a high `nearest` share rests partly on cells whose location-to-region match is approximate, so its estimate is less certain — be cautious with small, coastal, or island regions that sit on few cells. **National totals are unaffected** — every cell is counted exactly once and belongs to the country by source attribution; only the *within-country allocation across regions* carries this uncertainty.
 

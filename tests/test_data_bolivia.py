@@ -22,9 +22,14 @@ from geometrics.data import (
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "datasets" / "BOL-005popAdj-PWTscaled"
 
-#: Provinces whose grid cells are all censored at the 0_05 threshold: they
-#: have boundary polygons but no panel rows.
-CENSORED_ADM2 = {"BOL.2.1_2", "BOL.2.8_2", "BOL.2.11_2", "BOL.2.13_2", "BOL.5.16_2"}
+#: Provinces with polygons but no assigned grid centroid (and no panel rows).
+NO_ASSIGNED_CENTROID_ADM2 = {
+    "BOL.2.1_2",
+    "BOL.2.8_2",
+    "BOL.2.11_2",
+    "BOL.2.13_2",
+    "BOL.5.16_2",
+}
 
 DICT_COLUMNS = ["var_name", "var_def", "label", "type", "role", "can_be_na"]
 YEARS = list(range(2012, 2023))
@@ -67,10 +72,10 @@ def test_load_bolivia_shapes_and_contract():
     assert len(counts) == 107 and (counts == 11).all()
 
 
-def test_load_bolivia_censored_provinces_documented():
+def test_load_bolivia_unassigned_provinces_documented():
     gdf, df, _ = load_bolivia()
     missing = set(gdf["gid"]) - set(df["gid"])
-    assert missing == CENSORED_ADM2
+    assert missing == NO_ASSIGNED_CENTROID_ADM2
 
 
 def test_load_bolivia_departments_shapes():

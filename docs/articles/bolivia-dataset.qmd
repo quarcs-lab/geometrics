@@ -47,9 +47,15 @@ df_dict[df_dict["var_name"].isin(["gid", "year", "gdp_pwt", "gdppc", "ln_gdppc"]
 ```
 
 One data fact to know: **five provinces have boundary polygons but no panel
-rows** — all of their grid cells fall below the `0_05` population-density
-censoring threshold. geometrics' alignment machinery warns about them and
+rows** because the centroid-based build assigned no cells to those provinces.
+This is distinct from source GDP censoring. geometrics' alignment machinery
+warns about them and
 carries on; the warnings below are expected, not a bug.
+
+For replication, this article keeps the archived GADM department and province
+results. Their stored allocations used grid coordinates as centers; the source
+actually reports southwest corners. For new analysis, use the corrected
+[municipal and harmonized ADM1–ADM3 build](bolivia343-construction.qmd).
 
 ## The map
 
@@ -120,6 +126,16 @@ print(f"Moran's I = {lisa.moran_i:.2f} (p = {lisa.p_sim_global:.3f}); "
       f"HH cells: {lisa.n_hh}, LL cells: {lisa.n_ll}")
 lisa.fig
 ```
+
+## Municipal GDP on a fixed 343-unit map
+
+`gm.data.load_bolivia343()` builds a separate derived dataset from the source grid,
+using municipal overlap rather than splitting the province totals. Its default
+GDP per capita uses INE annual municipal population, harmonized to the fixed
+map343 geography. The PWT-modeled population ratio is available as
+`gdppc_pwt`. The
+[construction and validation guide](bolivia343-construction.qmd) includes a
+reproducible Colab notebook.
 
 ## Where next
 
